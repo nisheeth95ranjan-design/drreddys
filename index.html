@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AasanReport Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: Apple-style shell — quiet grey canvas, white cards, one purple accent; sidebar on desktop, tab bar on phones. */
+:root{
+  --accent:#5225B5; --accent-ink:#ffffff; --accent-soft:rgba(82,37,181,.10);
+  --bg:#F5F5F7; --side:#EFEFF3; --card:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#8E8E93;
+  --line:#E5E5EA; --fill:#E9E9EE;
+  --good:#34C759; --good-ink:#248A3D; --warn:#FF9500; --warn-ink:#C93400; --bad:#FF3B30; --bad-ink:#D70015; --info:#007AFF;
+  --tip:#FEF8EC; --ai:#F4EFFE; --wa:#DCF8C6;
+  --font-body:"DM Sans","Noto Sans Devanagari",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r-card:14px; --r-sm:9px; --shadow:0 1px 2px rgba(0,0,0,.04),0 2px 10px rgba(0,0,0,.04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#9C7BF2; --accent-ink:#14082E; --accent-soft:rgba(156,123,242,.16);
+    --bg:#111114; --side:#17171B; --card:#1D1D22; --ink:#F2F2F5; --ink-2:#A8A8B0; --ink-3:#8A8A93;
+    --line:#2C2C33; --fill:#2A2A31; --good-ink:#5BD77B; --warn-ink:#FFB347; --bad-ink:#FF6B63;
+    --tip:#2A2418; --ai:#221B33; --wa:#1F3A26; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#9C7BF2; --accent-ink:#14082E; --accent-soft:rgba(156,123,242,.16);
+  --bg:#111114; --side:#17171B; --card:#1D1D22; --ink:#F2F2F5; --ink-2:#A8A8B0; --ink-3:#8A8A93;
+  --line:#2C2C33; --fill:#2A2A31; --good-ink:#5BD77B; --warn-ink:#FFB347; --bad-ink:#FF6B63;
+  --tip:#2A2418; --ai:#221B33; --wa:#1F3A26; --shadow:none; color-scheme:dark;
+}
+:root[data-contrast="high"]{ --ink-2:var(--ink); --ink-3:var(--ink); --line:var(--ink); --fill:transparent; --shadow:none; }
+:root[data-contrast="high"] .card, :root[data-contrast="high"] .tile, :root[data-contrast="high"] .chip, :root[data-contrast="high"] .seg{ outline:1.5px solid var(--ink); }
+:root[data-size="large"]{ font-size:18px; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+:root[data-size="large"] body{font-size:17px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:6px}
+h1,h2,h3,p{margin:0}
+h1{font-size:34px;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+h3{font-size:17px;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)} .small{font-size:13px} .xs{font-size:12px}
+.app{display:grid;grid-template-columns:256px 1fr;height:100%}
+/* sidebar */
+.side{background:var(--side);border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px;padding:0 6px}
+.logo i{width:20px;height:20px;border-radius:50%;background:var(--accent);display:block}
+.profile{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:12px;padding:10px;border:0;text-align:left;width:100%}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600;flex:none}
+.abha{color:var(--good-ink);font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav .label{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--ink-3);padding:6px 10px 4px;text-transform:uppercase}
+.nav button{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:0;background:none;text-align:left;font-size:14px;color:var(--ink)}
+.nav button:hover{background:var(--fill)}
+.nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav svg{width:18px;height:18px;flex:none}
+.badge{margin-left:auto;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--fill);color:var(--ink-2)}
+.badge.warn{background:rgba(255,149,0,.16);color:var(--warn-ink)}
+.display-box{margin-top:auto;background:var(--card);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.toggle-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px}
+.toggle-row span{flex:1}
+.switch{width:42px;height:26px;border-radius:13px;border:0;background:var(--fill);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--good)}
+.switch[aria-checked="true"]::after{left:18px}
+/* main */
+main{overflow-y:auto;height:100%}
+.page{max-width:1180px;margin:0 auto;padding:32px 40px 56px;display:flex;flex-direction:column;gap:24px}
+.head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.head .titles{flex:1;min-width:220px;display:flex;flex-direction:column;gap:4px}
+.search{position:relative;width:260px}
+.search input{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 12px 9px 34px;font-size:14px}
+.search svg{position:absolute;left:10px;top:10px;width:16px;height:16px;color:var(--ink-3)}
+.results{position:absolute;top:44px;left:0;right:0;background:var(--card);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:20;overflow:hidden}
+.results button{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 12px;font-size:14px}
+.results button:hover,.results button:focus{background:var(--fill)}
+.seg{display:inline-flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;border-radius:7px;padding:5px 12px;font-size:13px;font-weight:500;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--card);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:100px;padding:9px 16px;font-size:14px;font-weight:600;background:var(--accent);color:var(--accent-ink);text-decoration:none}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:transparent;color:var(--accent);padding:6px 4px}
+.btn.danger{background:rgba(255,59,48,.12);color:var(--bad-ink)}
+.btn svg{width:16px;height:16px}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--card);border-radius:var(--r-card);padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;min-width:0}
+.card.tip{background:var(--tip)} .card.ai{background:var(--ai)}
+.card-head{display:flex;align-items:center;gap:10px}
+.card-head .t{flex:1;min-width:0}
+.icon-tile{width:32px;height:32px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.icon-tile.solid{background:var(--accent);color:var(--accent-ink)}
+.icon-tile svg{width:18px;height:18px}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.split{grid-template-columns:minmax(0,1fr) 360px}
+.section-head{display:flex;align-items:center;gap:8px}
+.section-head h2{flex:1}
+/* hero */
+.hero{flex-direction:row;align-items:center;gap:28px;padding:28px;flex-wrap:wrap}
+.hero .lead{flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px}
+.hero .lead p.big{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+.tiles{display:flex;gap:12px;flex-wrap:wrap}
+.tile{border:0;text-align:left;border-radius:14px;padding:14px 18px;width:140px;display:flex;flex-direction:column;gap:2px}
+.tile b{font-size:32px;line-height:1.1}
+.tile.g{background:rgba(52,199,89,.12)} .tile.g b{color:var(--good-ink)}
+.tile.o{background:rgba(255,149,0,.12)} .tile.o b{color:var(--warn-ink)}
+.tile.b{background:rgba(0,122,255,.10)} .tile.b b{color:var(--info)}
+.tile span{font-size:13px;font-weight:500}
+/* value cards */
+.vcard{cursor:pointer;border:0;text-align:left;font:inherit;color:inherit}
+.vcard:hover{box-shadow:0 0 0 2px var(--accent-soft),var(--shadow)}
+.vrow{display:flex;align-items:baseline;gap:4px}
+.vrow .v{font-size:32px;font-weight:700;letter-spacing:-.02em}
+.vrow .u{color:var(--ink-2);font-size:14px;font-weight:500}
+.vrow .pill{margin-left:auto;align-self:center}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:100px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:rgba(52,199,89,.14);color:var(--good-ink)}
+.pill.warn{background:rgba(255,149,0,.15);color:var(--warn-ink)}
+.pill.bad{background:rgba(255,59,48,.13);color:var(--bad-ink)}
+.pill.neutral{background:var(--fill);color:var(--ink-2)}
+.pill.neutral::before{display:none}
+.info-btn{border:0;background:none;color:var(--ink-3);padding:2px;border-radius:50%;display:grid;place-items:center}
+.info-btn svg{width:18px;height:18px}
+/* range bar */
+.range{position:relative;height:34px;margin:2px 7px 0}
+.range .track{position:absolute;left:0;right:0;top:4px;height:6px;border-radius:3px;background:var(--fill)}
+.range .band{position:absolute;top:4px;height:6px;border-radius:3px;background:rgba(52,199,89,.5)}
+.range .dot{position:absolute;top:0;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2.5px solid var(--card);box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+.range .lim{position:absolute;top:17px;font-size:11px;color:var(--ink-3);transform:translateX(-50%);font-weight:500}
+.range.big{height:44px}
+.range.big .track,.range.big .band{height:10px;top:6px;border-radius:5px}
+.range.big .dot{width:20px;height:20px;margin-left:-10px}
+.range.big .lim{top:24px;font-size:12px}
+/* chart */
+.chart-wrap{position:relative}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.chart-wrap .pt{cursor:pointer}
+.tipbox{position:absolute;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:9px;font-size:12px;pointer-events:none;transform:translate(-50%,-120%);white-space:nowrap}
+.tipbox b{display:block;font-size:13px}
+/* lists */
+.list{display:flex;flex-direction:column}
+.lrow{display:grid;grid-template-columns:4px minmax(140px,1.3fr) 120px minmax(140px,1fr) 118px 28px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.lrow:last-child{border-bottom:0}
+.lrow .mark{width:3px;height:30px;border-radius:2px}
+.lrow .nm b{display:block;font-weight:600}
+.lrow .val{font-weight:600;font-size:18px}
+.lrow .val small{font-size:12px;font-weight:400;color:var(--ink-2)}
+.group{padding:18px 22px}
+.group summary{list-style:none;display:flex;align-items:center;gap:12px;cursor:pointer}
+.group summary::-webkit-details-marker{display:none}
+.group summary .chev{transition:transform .2s;color:var(--ink-3)}
+.group[open] summary .chev{transform:rotate(90deg)}
+.group .body{margin-top:8px}
+.qlist{display:flex;flex-direction:column;gap:8px}
+.q{display:flex;gap:10px;align-items:flex-start}
+.q input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);margin-top:2px;flex:none}
+.q span{flex:1}
+.q .x{border:0;background:none;color:var(--ink-3);padding:0 4px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:0;border-radius:100px;padding:6px 12px;font-size:13px;font-weight:500;background:var(--fill)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.field{display:flex;gap:8px}
+.field input,.field select,textarea{flex:1;border:0;background:var(--fill);border-radius:10px;padding:9px 12px;font-size:14px;min-width:0}
+textarea{width:100%;resize:vertical;min-height:72px}
+.bubble{background:var(--wa);border-radius:14px;padding:12px 14px;white-space:pre-wrap;font-size:14px}
+.note{font-size:12px;color:var(--ink-3)}
+.rep{display:grid;grid-template-columns:40px minmax(0,1fr) 110px 150px 120px 24px;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.rep:hover{background:var(--fill)}
+.rtile{width:40px;height:40px;border-radius:10px;display:grid;place-items:center}
+.rtile svg{width:20px;height:20px}
+.year{font-weight:700;font-size:15px;padding:14px 0 4px}
+.repgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.repcard{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;background:none;text-align:left;cursor:pointer}
+.spark{width:110px;height:32px}
+.stat{flex-direction:row;align-items:center;gap:14px;padding:18px 20px}
+.stat b{font-size:28px}
+/* drawer & modal */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:flex;justify-content:flex-end}
+.drawer{width:min(460px,100%);height:100%;background:var(--bg);overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:-10px 0 40px rgba(0,0,0,.2)}
+.modal-scrim{align-items:center;justify-content:center;padding:16px}
+.modal{width:min(560px,100%);max-height:90%;overflow-y:auto;background:var(--card);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.close{border:0;background:var(--fill);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;flex:none}
+pre.summary{white-space:pre-wrap;background:var(--fill);border-radius:10px;padding:14px;font-family:var(--font-body);font-size:13px;margin:0;max-height:340px;overflow:auto}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.toast button{border:0;background:none;color:var(--bg);font-weight:700;text-decoration:underline}
+.term{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.term svg{width:14px;height:14px}
+.pop{position:fixed;z-index:70;width:300px;max-width:calc(100vw - 24px);background:var(--card);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);padding:16px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line)}
+.pop b{font-size:15px}
+.modeseg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.vt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.vt th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;padding:8px 6px;border-bottom:1px solid var(--line)}
+.vt td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.vt tr:last-child td{border-bottom:0}
+.vt .flag{font-weight:700}
+.chips .chip.term-chip{background:var(--card);color:var(--accent);text-decoration:underline dotted;text-underline-offset:3px}
+.proto{font-size:12px;color:var(--ink-3);text-align:center}
+.tabbar{display:none}
+.mtop{display:none}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+/* responsive */
+@media (max-width: 1100px){ .split{grid-template-columns:1fr} }
+@media (max-width: 900px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .page{padding:16px 16px 110px;gap:18px}
+  h1{font-size:30px}
+  .g3,.g2{grid-template-columns:1fr}
+  .search{width:100%}
+  .hero{padding:20px}
+  .hero .lead p.big{font-size:22px}
+  .tile{flex:1;width:auto;min-width:90px;padding:10px 12px}
+  .tile b{font-size:24px}
+  .lrow{grid-template-columns:4px minmax(0,1fr) auto;row-gap:6px}
+  .lrow .rb{grid-column:2 / 3}
+  .lrow .st{grid-column:3 / 4;justify-self:end}
+  .lrow .ib{display:none}
+  .rep{grid-template-columns:40px minmax(0,1fr) 24px}
+  .rep .rd,.rep .rt{display:none}
+  .rep .rs{grid-column:2 / 3}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 6px 22px;z-index:30}
+  .tabbar button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:500;color:var(--ink-3)}
+  .tabbar button svg{width:24px;height:24px}
+  .tabbar button[aria-current="page"]{color:var(--accent)}
+  .mtop{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:25;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:10px 16px;font-weight:700}
+  .mtop .logo{font-size:17px;padding:0}
+  .mtop .sp{flex:1}
+  .stat{padding:14px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="Main navigation"></aside>
+  <main id="main" tabindex="-1"></main>
+</div>
+<nav class="tabbar" id="tabbar" aria-label="Tabs"></nav>
+<div id="layer"></div>
+<input type="file" id="file" accept=".pdf,image/*" multiple hidden>
+<script>
+/* ---------- icons ---------- */
+const I={
+ grid:'<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
+ vault:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V7"/>',
+ chart:'<path d="M4 18l5-6 4 3 7-9"/>', clip:'<rect x="6" y="4" width="12" height="17" rx="3"/><path d="M9 12h6M9 16h4"/>',
+ book:'<path d="M5 5a2 2 0 012-2h11v15H7a2 2 0 00-2 2V5z"/><path d="M5 20a2 2 0 012-2h11v3H7a2 2 0 01-2-1z"/>',
+ people:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0112 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 014.5 5"/>',
+ person:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>', drop:'<path d="M12 3s6 7 6 11a6 6 0 01-12 0c0-4 6-11 6-11z"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>', speaker:'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>',
+ stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>', info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>',
+ spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>', chev:'<path d="M9 6l6 6-6 6"/>', back:'<path d="M15 6l-6 6 6 6"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>', check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>', bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/>',
+ ruler:'<rect x="3" y="8" width="18" height="8" rx="2"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>', pin:'<path d="M12 21s-6-5.5-6-11a6 6 0 0112 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+ doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>', share:'<path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7h14v-7"/>', plus:'<path d="M12 5v14M5 12h14"/>',
+ link:'<path d="M10 14a4 4 0 005.6 0l3-3a4 4 0 00-5.6-5.6l-1 1"/><path d="M14 10a4 4 0 00-5.6 0l-3 3a4 4 0 005.6 5.6l1-1"/>', upload:'<path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v6h14v-6"/>',
+ cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', bell:'<path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/>', lock:'<rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+ scan:'<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/>', rx:'<path d="M7 3h7l5 5v13H7z"/><path d="M10 12h6M10 16h4"/>',
+ chat:'<path d="M5 5h14v10H9l-4 4V5z"/>', moon:'<path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/>', contrast:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/>', textsize:'<path d="M4 18l4-11 4 11M5.5 14h5M14 18l3-8 3 8M15 15.5h4"/>',
+ play:'<path d="M9 7l8 5-8 5z"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>', sync:'<path d="M20 12a8 8 0 01-14 5.3M4 12a8 8 0 0114-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>', trash:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>'
+};
+const ic=(n,extra='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${I[n]}</svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- reference data (sample) ---------- */
+const DATES=['Nov ’24','May ’25','Nov ’25','May ’26','Nov ’26'];
+const TESTS={
+ hb:{name:'Haemoglobin',term:'Hb',plain:'carries oxygen in your blood',unit:'g/dL',group:'blood',range:{F:[12,15.5],M:[13,17]},what:'The protein in red blood cells that carries oxygen around your body.',low:'Below range can come with tiredness or breathlessness. Doctors read it with MCV and MCH to see why.',high:'Above about 16 g/dL, blood can thicken. Both directions are worth checking.'},
+ rbc:{name:'Red blood cells',term:'RBC',plain:'number of red cells',unit:'million/µL',group:'blood',range:{F:[3.8,4.8],M:[4.5,5.5]},what:'How many red blood cells are in a small amount of blood.',low:'Fewer red cells often goes with low haemoglobin.',high:'More red cells can thicken the blood.'},
+ mcv:{name:'Average red cell size',term:'MCV',plain:'how big your red cells are',unit:'fL',group:'blood',range:[83,101],what:'The average size of your red blood cells.',low:'Smaller cells are often looked at alongside iron levels.',high:'Larger cells are often looked at alongside B12 and folate.'},
+ mch:{name:'Haemoglobin per cell',term:'MCH',plain:'oxygen-carrier in each cell',unit:'pg',group:'blood',range:[27,32],what:'How much haemoglobin each red cell carries on average.',low:'Usually moves together with MCV.',high:'Usually moves together with MCV.'},
+ wbc:{name:'White blood cells',term:'WBC / TLC',plain:'cells that fight infection',unit:'thousand/µL',group:'blood',range:[4,10],what:'Cells that help your body fight infection.',low:'A low count can also matter; doctors read it with symptoms.',high:'High does not only mean infection; doctors read it with symptoms.'},
+ plt:{name:'Platelets',term:'PLT',plain:'cells that help blood clot',unit:'thousand/µL',group:'blood',range:[150,410],what:'Small cells that help blood clot when you are cut.',low:'Low platelets can mean easier bruising.',high:'High platelets are read with other values.'},
+ tsh:{name:'Thyroid signal',term:'TSH',plain:'tells your thyroid how hard to work',unit:'mIU/L',group:'thyroid',range:[0.4,4.5],what:'A hormone from the brain that tells the thyroid gland how hard to work.',low:'Low TSH is read together with FT4.',high:'High TSH is read together with FT4. One reading is often re-checked.'},
+ ft4:{name:'Thyroid hormone',term:'FT4',plain:'the hormone your thyroid makes',unit:'ng/dL',group:'thyroid',range:[0.8,1.8],what:'The main hormone your thyroid makes.',low:'Read together with TSH.',high:'Read together with TSH.'},
+ fbs:{name:'Fasting sugar',term:'FBS',plain:'blood sugar after 8–10 hours without food',unit:'mg/dL',group:'sugar',range:[70,100],what:'Your blood sugar after not eating for 8 to 10 hours.',low:'Low fasting sugar can make you feel shaky or faint.',high:'Above range is read together with HbA1c.'},
+ hba1c:{name:'Average sugar',term:'HbA1c',plain:'your sugar average over 3 months',unit:'%',group:'sugar',range:[4,5.6],what:'Your average blood sugar over about the last three months.',low:'Rarely a concern on its own.',high:'Changes slowly, so trends over months matter most.'},
+ ldl:{name:'Cholesterol (LDL)',term:'LDL',plain:'often called “bad” cholesterol',unit:'mg/dL',group:'lipids',range:[0,100],what:'Cholesterol carried in LDL particles, which can build up in blood vessels.',low:'Lower is usually fine.',high:'Above range is read with your other heart-health factors.'},
+ hdl:{name:'Cholesterol (HDL)',term:'HDL',plain:'often called “good” cholesterol',unit:'mg/dL',group:'lipids',range:[40,80],what:'Cholesterol carried in HDL particles, which help clear cholesterol.',low:'Low HDL is read with LDL and lifestyle.',high:'Usually fine.'},
+ tg:{name:'Triglycerides',term:'TG',plain:'a type of fat in your blood',unit:'mg/dL',group:'lipids',range:[0,150],what:'A type of fat in your blood, affected by recent meals.',low:'Usually fine.',high:'Read with your other lipids.'},
+ vitd:{name:'Vitamin D',term:'25-OH Vit D',plain:'for bones and immunity',unit:'ng/mL',group:'vitamins',range:[30,100],what:'A vitamin your body needs for strong bones and immunity.',low:'Low vitamin D is very common in India.',high:'Very high levels usually come from supplements.'},
+ b12:{name:'Vitamin B12',term:'B12',plain:'for nerves and red cells',unit:'pg/mL',group:'vitamins',range:[200,900],what:'A vitamin needed for nerves and making red cells.',low:'Low B12 can affect red cell size.',high:'Usually from supplements.'},
+ creat:{name:'Kidney filter marker',term:'Creatinine',plain:'how well kidneys filter',unit:'mg/dL',group:'organs',range:{F:[0.6,1.1],M:[0.7,1.3]},what:'A waste product your kidneys filter out.',low:'Usually fine.',high:'Read with other kidney tests.'},
+ alt:{name:'Liver enzyme',term:'ALT / SGPT',plain:'a marker of liver cells',unit:'U/L',group:'organs',range:[0,35],what:'An enzyme found mostly in the liver.',low:'Usually fine.',high:'Read with other liver tests.'}
+};
+const GROUPS=[['blood','Blood count','CBC'],['thyroid','Thyroid','Thyroid profile'],['sugar','Sugar','Glucose and HbA1c'],['lipids','Lipids','Cholesterol'],['vitamins','Vitamins','D and B12'],['organs','Kidney and liver','KFT and LFT']];
+const SYSTEMS=[['hb','Blood','Hb'],['tsh','Thyroid','TSH'],['fbs','Sugar','FBS'],['hba1c','Avg sugar','HbA1c']];
+const PROFILES={
+ sunita:{name:'Sunita Sharma',short:'Sunita',initial:'S',sex:'F',age:'45–60',lab:'Thyrocare, Pune',date:'12 Nov 2026',rel:'You',
+  v:{hb:[11.9,11.6,11.4,11.0,11.2],rbc:[4.5,4.4,4.4,4.2,4.3],mcv:[80,79,78,75,76],mch:[27,26.5,26,25,25],wbc:[6.8,7.0,6.5,7.4,7.2],plt:[250,270,240,255,260],tsh:[3.2,3.8,4.1,4.5,5.1],ft4:[1.2,1.2,1.1,1.1,1.1],fbs:[98,101,104,108,108],hba1c:[5.4,5.5,5.6,5.7,5.9],ldl:[118,110,104,99,96],hdl:[50,52,51,53,52],tg:[150,145,138,142,140],vitd:[14,18,24,29,32],b12:[380,400,390,420,410],creat:[0.8,0.8,0.7,0.8,0.8],alt:[22,25,21,26,24]}},
+ ramesh:{name:'Ramesh Sharma',short:'Ramesh',initial:'R',sex:'M',age:'50–55',lab:'Metropolis, Pune',date:'3 Oct 2026',rel:'Husband',
+  v:{hb:[14.9,14.7,14.8,14.5,14.6],rbc:[5.1,5.0,5.0,4.9,5.0],mcv:[88,89,88,90,89],mch:[29,29,30,29,29],wbc:[7.9,8.1,7.6,8.4,8.0],plt:[230,220,240,235,228],tsh:[2.0,2.2,1.9,2.3,2.1],ft4:[1.3,1.3,1.4,1.3,1.3],fbs:[104,110,115,121,126],hba1c:[6.0,6.2,6.4,6.6,6.8],ldl:[124,128,131,135,138],hdl:[42,41,43,42,44],tg:[160,155,148,152,146],vitd:[22,25,27,31,34],b12:[310,330,300,320,315],creat:[1.0,1.1,1.0,1.1,1.1],alt:[30,33,28,31,29]}},
+ asha:{name:'Asha Sharma',short:'Asha',initial:'A',sex:'F',age:'20–25',lab:'Dr Lal PathLabs, Pune',date:'28 Aug 2026',rel:'Daughter',
+  v:{hb:[12.6,12.8,12.5,12.3,12.4],rbc:[4.4,4.5,4.4,4.3,4.4],mcv:[86,87,86,85,86],mch:[28,29,28,28,28],wbc:[6.1,5.8,6.4,6.0,6.2],plt:[280,300,290,275,285],tsh:[1.8,2.0,1.7,1.9,2.0],ft4:[1.2,1.3,1.2,1.2,1.3],fbs:[84,88,86,90,87],hba1c:[5.0,5.1,5.0,5.2,5.1],ldl:[80,84,82,86,85],hdl:[58,60,57,61,60],tg:[90,95,88,92,94],vitd:[20,18,16,15,14],b12:[260,240,230,215,205],creat:[0.7,0.7,0.6,0.7,0.7],alt:[16,18,15,17,16]}}
+};
+const AI={
+ blood:{say:'Haemoglobin, MCV and MCH are all slightly low. Doctors read these three together: they describe red cells that are a little small and carry a little less oxygen.',know:'Slightly low haemoglobin is common in Indian women: 57% of women aged 15–49 (NFHS-5). It is usually simple to look into.',qs:['Could my low haemoglobin be related to iron or B12?','When should I repeat my blood count?']},
+ thyroid:{say:'Your TSH, the signal that tells the thyroid how hard to work, is above your lab’s range. FT4, the hormone itself, is in range. Doctors look at both together.',know:'TSH can change with time of day and recent illness, so one reading is often re-checked before anything else.',qs:['Should I re-test my TSH, and when?','Do I need any other thyroid tests?']},
+ sugar:{say:'Your fasting sugar and your 3-month average (HbA1c) are above your lab’s range and have crept up over two years. Doctors read these two together.',know:'HbA1c reflects about three months, so it moves slowly. The trend matters more than one reading.',qs:['What do my sugar trends mean for me?','How often should I check HbA1c?']},
+ lipids:{say:'LDL, often called “bad” cholesterol, is above your lab’s range and has risen slowly. HDL and triglycerides are inside range.',know:'Doctors read cholesterol together with blood pressure, sugar, age and family history.',qs:['Is my LDL worth acting on now?','When should I re-check my lipids?']},
+ vitamins:{say:'Vitamin D is below your lab’s range and has dipped over two years. B12 is inside range but close to the lower edge.',know:'Low vitamin D is very common in India, including in young adults.',qs:['Should I take anything for vitamin D?','Should B12 be re-checked?']},
+ organs:{say:'Your kidney and liver markers are inside your lab’s range.',know:'These are often checked once a year as part of a routine panel.',qs:['Do I need these checked every year?']}
+};
+const MYTHS=[['Only low values are a problem','High haemoglobin matters too. Above about 16 g/dL, blood can thicken. Both directions are worth checking.'],['A high white cell count only means infection','A low count can also matter, and a very high one is read carefully. Doctors read it with your symptoms.'],['One flagged value means something is wrong','Doctors read values together and with symptoms. Many flags are common and simple to look into.'],['“Normal” is the same at every lab','Each lab sets its own ranges, and they differ by machine, sex and age. AasanReport always shows your lab’s range.']];
+const DICT_EXTRA=[['Reference range','The values most healthy people fall within, set by your lab. Another lab may use slightly different numbers.'],['Reactive / Non-reactive','Words used for tests that look for something, like an infection marker. Non-reactive means it was not found; reactive means it was found and needs a doctor’s reading.'],['PP sugar','Post-prandial sugar: blood sugar about two hours after a meal.'],['CBC','Complete blood count: a set of tests about your red cells, white cells and platelets.'],['Fasting','Not eating or drinking anything except water for 8 to 10 hours before a test.']];
+const VIDEOS=[['What is HbA1c?','1 min','HbA1c shows your average sugar over about three months, so it changes slowly. Doctors look at the trend across several reports.'],['High vs low haemoglobin','2 min','Both low and high haemoglobin are worth discussing. Doctors read it with MCV, MCH and how you feel.'],['How to read a range','1 min','The green band is your lab’s usual range. The dot is you. Slightly outside is common; your doctor tells you what it means for you.']];
+const CLINICS=[['Family Health Clinic','General physician','1.2 km','Open until 8 pm'],['Riverside Medical Centre','General physician','2.4 km','Open until 9 pm'],['City Endocrine Care','Thyroid and sugar specialist','3.1 km','Appointments only'],['Green Park Clinic','General physician','3.8 km','Open 24 hours']];
+
+/* ---------- i18n (key labels) ---------- */
+const T={
+ en:{summary:'Summary',vault:'Vault',trends:'Trends',doctor:'Doctor visit',dictionary:'Dictionary',family:'Family sharing',profile:'Profile',greet:'Good morning',mostly:'Mostly in range.',discuss:n=>`${n} ${n===1?'thing':'things'} to discuss with your doctor.`,all:'Everything is inside your lab’s ranges.',inRange:'In range',toDiscuss:'To discuss',changed:'Changed',notDx:'Not a diagnosis',worth:'Worth discussing',meaning:'What this means',listen:'Listen',stop:'Stop',allResults:'All results',blood:'Blood',thyroid:'Thyroid',sugar:'Sugar',avg:'Avg sugar',next:'Next steps',search:'Search a term, e.g. TSH'},
+ hi:{summary:'सारांश',vault:'वॉल्ट',trends:'रुझान',doctor:'डॉक्टर से मिलना',dictionary:'शब्दकोश',family:'परिवार से साझा',profile:'प्रोफ़ाइल',greet:'सुप्रभात',mostly:'ज़्यादातर नतीजे सामान्य दायरे में हैं।',discuss:n=>`${n} ${n===1?'बात':'बातें'} डॉक्टर से पूछने लायक ${n===1?'है':'हैं'}।`,all:'सभी नतीजे आपकी लैब के दायरे में हैं।',inRange:'सामान्य दायरे में',toDiscuss:'चर्चा के लिए',changed:'बदला',notDx:'यह निदान नहीं है',worth:'चर्चा करने लायक',meaning:'इसका मतलब',listen:'सुनें',stop:'रोकें',allResults:'सभी नतीजे',blood:'रक्त',thyroid:'थायरॉइड',sugar:'शुगर',avg:'औसत शुगर',next:'अगले कदम',search:'कोई शब्द खोजें, जैसे TSH'},
+ mr:{summary:'सारांश',vault:'व्हॉल्ट',trends:'कल',doctor:'डॉक्टर भेट',dictionary:'शब्दकोश',family:'कुटुंबासोबत शेअर',profile:'प्रोफाइल',greet:'सुप्रभात',mostly:'बहुतेक निकाल सामान्य मर्यादेत आहेत.',discuss:n=>`${n} ${n===1?'गोष्ट डॉक्टरांशी बोलण्यासारखी आहे':'गोष्टी डॉक्टरांशी बोलण्यासारख्या आहेत'}.`,all:'सर्व निकाल तुमच्या लॅबच्या मर्यादेत आहेत.',inRange:'सामान्य मर्यादेत',toDiscuss:'चर्चेसाठी',changed:'बदल',notDx:'हे निदान नाही',worth:'चर्चा करण्यासारखे',meaning:'याचा अर्थ',listen:'ऐका',stop:'थांबवा',allResults:'सर्व निकाल',blood:'रक्त',thyroid:'थायरॉइड',sugar:'साखर',avg:'सरासरी साखर',next:'पुढील पावले',search:'शब्द शोधा, उदा. TSH'}
+};
+
+Object.assign(T.en,{smostly:'Most results are normal.',sdiscuss:n=>`${n} ${n===1?'thing':'things'} to ask your doctor about.`,sinRange:'Normal',stoDiscuss:'Ask doctor'});
+Object.assign(T.hi,{smostly:'ज़्यादातर नतीजे सामान्य हैं।',sdiscuss:n=>`${n} ${n===1?'बात':'बातें'} डॉक्टर से पूछें।`,sinRange:'सामान्य',stoDiscuss:'डॉक्टर से पूछें'});
+Object.assign(T.mr,{smostly:'बहुतेक निकाल सामान्य आहेत.',sdiscuss:n=>`${n} ${n===1?'गोष्ट':'गोष्टी'} डॉक्टरांना विचारा.`,sinRange:'सामान्य',stoDiscuss:'डॉक्टरांना विचारा'});
+/* ---------- state ---------- */
+const store={get(k,d){try{const v=localStorage.getItem('ar_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('ar_'+k,JSON.stringify(v))}catch(e){}}};
+const S={
+ view:'summary', profile:'sunita', lang:store.get('lang','en'), trendKey:'hb', span:5, rangeSex:null,
+ dark:store.get('dark',false), mode:store.get('mode','simple'), gentle:store.get('gentle',false), revealed:{}, contrast:store.get('contrast',false), large:store.get('large',false), readAloud:store.get('readAloud',true),
+ mythIdx:0, search:'', dictQuery:'', vaultFilter:'All', vaultMode:'timeline', vaultQuery:'',
+ reasons:{'Feeling tired':true,'Routine check-up':false,'Hair fall':false,'Breathlessness':false}, notes:'',
+ questions:[{t:'Could my low haemoglobin be related to iron or B12?',done:false},{t:'Should I re-test my TSH, and when?',done:false},{t:'What do my sugar trends mean for me?',done:false}],
+ clinicsOpen:false, clinicFilter:'All', includeValues:false, recipients:{Ramesh:true,Asha:false},
+ reminders:{hba1c:false,lipid:false}, synced:false, speaking:false,
+ access:[{who:'Ramesh Sharma',what:'Family · summary only'},{who:'Clinic visit, 20 Nov',what:'Full report · expires in 7 days'}],
+ reports:[
+  {id:'r1',title:'Complete health check-up',lab:'Thyrocare, Pune',date:'12 Nov 2026',year:2026,type:'Blood',tests:27,status:'3 to discuss',k:'warn',current:true},
+  {id:'r2',title:'Thyroid profile',lab:'Dr Lal PathLabs',date:'14 May 2026',year:2026,type:'Blood',tests:3,status:'1 to discuss',k:'warn'},
+  {id:'r3',title:'Prescription',lab:'General physician',date:'14 Mar 2026',year:2026,type:'Prescriptions',tests:0,status:'Medicines',k:'neutral'},
+  {id:'r4',title:'Chest X-ray',lab:'Ruby Hall Clinic',date:'2 Mar 2026',year:2026,type:'Imaging',tests:0,status:'Normal',k:'ok'},
+  {id:'r5',title:'Complete health check-up',lab:'Thyrocare, Pune',date:'9 Nov 2025',year:2025,type:'Blood',tests:27,status:'2 to discuss',k:'warn'},
+  {id:'r6',title:'Urine routine',lab:'Metropolis',date:'18 Aug 2025',year:2025,type:'Urine',tests:12,status:'All in range',k:'ok'},
+  {id:'r7',title:'Ultrasound, abdomen',lab:'Sahyadri Hospital',date:'3 Jun 2025',year:2025,type:'Imaging',tests:0,status:'Normal',k:'ok'},
+  {id:'r8',title:'Vitamin D and B12',lab:'Thyrocare, Pune',date:'21 Jan 2025',year:2025,type:'Blood',tests:2,status:'1 to discuss',k:'warn'}
+ ]
+};
+const L=()=>T[S.lang];
+const P=()=>PROFILES[S.profile];
+
+/* ---------- value logic ---------- */
+function rangeOf(key,sex){const r=TESTS[key].range;return Array.isArray(r)?r:r[sex||P().sex]}
+function valOf(key){const a=P().v[key];return a[a.length-1]}
+function status(key,v,sex){const [lo,hi]=rangeOf(key,sex);v=v??valOf(key);const span=hi-lo||1;
+ if(v<lo){const d=(lo-v)/span;return d>0.5?{k:'bad',t:'Low · discuss soon',dir:'low'}:{k:'warn',t:'Slightly low',dir:'low'}}
+ if(v>hi){const d=(v-hi)/span;return d>0.5?{k:'bad',t:'High · discuss soon',dir:'high'}:{k:'warn',t:'Slightly high',dir:'high'}}
+ return {k:'ok',t:'In range',dir:'in'}}
+const offKeys=()=>Object.keys(TESTS).filter(k=>status(k).k!=='ok');
+const offGroups=()=>GROUPS.filter(([g])=>Object.keys(TESTS).some(k=>TESTS[k].group===g&&status(k).k!=='ok')).map(g=>g[0]);
+function leadKey(g){const ks=Object.keys(TESTS).filter(k=>TESTS[k].group===g);return ks.find(k=>status(k).k==='bad')||ks.find(k=>status(k).k!=='ok')||ks[0]}
+function changes(){const out=[];for(const k of Object.keys(TESTS)){const a=P().v[k];const prev=a[a.length-2],cur=a[a.length-1];if(prev===cur)continue;const s1=status(k,prev),s2=status(k,cur);
+ if(s1.k==='ok'&&s2.k!=='ok')out.push({k,prev,cur,t:'Moved out of range',c:s2.k,o:0});
+ else if(s1.k!=='ok'&&s2.k==='ok')out.push({k,prev,cur,t:'Back in range',c:'ok',o:1});
+ else if(s2.k!=='ok')out.push({k,prev,cur,t:'Still '+s2.t.toLowerCase().replace(' · discuss soon',''),c:'neutral',o:2});}
+ return out.sort((x,y)=>x.o-y.o)}
+function changedCount(){return changes().filter(c=>c.o<2).length}
+const fmt=v=>Number.isInteger(v)?String(v):String(+v.toFixed(1));
+function changeText(key){const a=P().v[key];const d=a[a.length-1]-a[a.length-2];if(Math.abs(d)<1e-9)return 'Same as last test';return (d>0?'↑ ':'↓ ')+fmt(Math.abs(d))+' since last test'}
+
+/* ---------- components ---------- */
+function rangeBar(key,opts={}){const sex=opts.sex;const [lo,hi]=rangeOf(key,sex);const v=opts.value??valOf(key);const span=hi-lo||1;
+ let min=Math.max(0,lo-span*0.6),max=hi+span*0.6;min=Math.min(min,v-span*0.1);max=Math.max(max,v+span*0.1);if(lo===0)min=0;
+ const X=x=>((x-min)/(max-min)*100).toFixed(2);const st=status(key,v,sex);const col=st.k==='ok'?'var(--good)':st.k==='bad'?'var(--bad)':'var(--warn)';
+ const lims=(simple()&&!opts.nums)?[[lo===0?null:(0+ +X(lo))/2,'Low'],[(+X(lo)+ +X(hi))/2,'Usual'],[(+X(hi)+100)/2,'High']].filter(x=>x[0]!=null).map(([x,l])=>`<span class="lim" style="left:${x.toFixed(1)}%">${l}</span>`).join(''):(lo===0?[hi]:[lo,hi]).map(x=>`<span class="lim num" style="left:${X(x)}%">${fmt(x)}</span>`).join('');
+ return `<div class="range ${opts.big?'big':''}" role="img" aria-label="${esc(TESTS[key].name)} ${fmt(v)} ${esc(TESTS[key].unit)}, lab range ${fmt(lo)} to ${fmt(hi)}, ${st.t}"><div class="track"></div><div class="band" style="left:${X(lo)}%;width:${(X(hi)-X(lo)).toFixed(2)}%"></div><div class="dot" style="left:${X(v)}%;background:${col}"></div>${lims}</div>`}
+const simple=()=>S.mode!=='veteran';
+const SNAME={hb:'Oxygen in your blood',rbc:'Red blood cell count',mcv:'Size of red blood cells',mch:'Oxygen in each red cell',wbc:'Infection-fighting cells',plt:'Clotting cells',tsh:'Thyroid signal',ft4:'Thyroid hormone',fbs:'Sugar before eating',hba1c:'3-month sugar average',ldl:'“Bad” cholesterol',hdl:'“Good” cholesterol',tg:'Blood fat',vitd:'Vitamin D',b12:'Vitamin B12',creat:'Kidney cleaning',alt:'Liver health'};
+const SGROUP={blood:'Blood',thyroid:'Thyroid',sugar:'Sugar',lipids:'Cholesterol and fats',vitamins:'Vitamins',organs:'Kidney and liver'};
+const SAI={blood:['Your blood is carrying a little less oxygen than usual. Three related numbers point to the same thing, so your doctor will look at them together.','This is very common in Indian women and is usually easy to look into.'],
+ thyroid:['The signal that tells your thyroid how hard to work is a bit high. The thyroid hormone itself is normal. Your doctor may want to check it again.','This number can change from day to day, so one reading is often checked again.'],
+ sugar:['Your sugar is a little higher than usual, and has slowly gone up over two years.','The slow change over months matters more than a single test.'],
+ lipids:['Your “bad” cholesterol is a little high and has slowly gone up. Your “good” cholesterol is normal.','Your doctor looks at this together with blood pressure, sugar, age and family history.'],
+ vitamins:['Your vitamin D is low.','This is very common in India, even in young people.'],
+ organs:['Your kidney and liver numbers look normal.','These are usually checked once a year.']};
+const nm=k=>simple()?SNAME[k]:TESTS[k].name;
+const gname=g=>simple()?SGROUP[g]:GROUPS.find(x=>x[0]===g)[1];
+const SL={'In range':'Normal','Slightly low':'A bit low','Slightly high':'A bit high','Low · discuss soon':'Low · see doctor soon','High · discuss soon':'High · see doctor soon','Moved out of range':'Now outside usual range','Back in range':'Back to normal','Still slightly low':'Still a bit low','Still slightly high':'Still a bit high','All in range':'All normal'};
+const slabel=t=>simple()?(SL[t]||t):t;
+const pill=(st)=>`<span class="pill ${st.k}">${esc(slabel(st.t))}</span>`;
+function termChip(k,label){const t=TESTS[k];return `<span class="term" role="button" tabindex="0" data-act="term" data-v="${k}">${esc(label||('On your report: '+t.name+(t.name.includes(t.term)?'':' ('+t.term+')')))} ${ic('info')}</span>`}
+function subLine(k){const t=TESTS[k];return simple()?termChip(k):`${esc(t.term)} · ${esc(t.plain)}`}
+function moveWord(k,span,suffix){const a=P().v[k];const [lo,hi]=rangeOf(k);const x=a[a.length-1-(span-1)]??a[0],y=a[a.length-1];const d=(y-x)/((hi-lo)||1);
+ if(Math.abs(d)<0.03)return 'Stayed about the same'+suffix;return `Went ${d>0?'up':'down'} ${Math.abs(d)<0.3?'a little':'a lot'}${suffix}`}
+function changeLine(k){return simple()?moveWord(k,2,' since last test'):changeText(k)}
+function termPop(el,k){closePop();const t=TESTS[k];const st=status(k);const r=el.getBoundingClientRect();const d=document.createElement('div');d.className='pop';d.id='pop';d.setAttribute('role','dialog');
+ d.innerHTML=`<span class="xs muted">${esc(SNAME[k])}</span><b>${esc(t.name)}${t.name.includes(t.term)?'':' ('+esc(t.term)+')'}</b><p class="small">${esc(t.what)}</p><p class="small">${esc(st.dir==='high'?t.high:st.dir==='low'?t.low:'Inside your lab’s range')}</p><div style="display:flex;gap:6px;align-items:center"><span class="small muted">Your value</span> <b class="num" style="font-size:14px">${fmt(valOf(k))} ${esc(t.unit)}</b> ${pill(st)}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft small" style="padding:6px 12px" data-act="detail" data-v="${k}">Full details</button><button class="btn ghost small" data-act="dict" data-v="${esc(t.term)}">More in the dictionary</button></div>`;
+ document.body.appendChild(d);translateDOM(d);const w=d.offsetWidth,hh=d.offsetHeight;let top=r.bottom+8;if(top+hh>innerHeight-8)top=Math.max(8,r.top-hh-8);d.style.top=top+'px';d.style.left=Math.max(12,Math.min(r.left,innerWidth-w-12))+'px';d.querySelector('button')?.focus()}
+function closePop(){document.getElementById('pop')?.remove()}
+function modeSeg(){return `<div class="seg modeseg" role="group" aria-label="Reading mode">${[['simple','Simple'],['veteran','Veteran']].map(([k,l])=>`<button data-act="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join('')}</div>`}
+function vetTable(ks){return `<div style="overflow-x:auto"><table class="vt"><thead><tr><th>Test</th><th>Result</th><th>Unit</th><th>Lab range</th><th>Previous</th><th>Change</th><th>Flag</th></tr></thead><tbody>${ks.map(k=>{const t=TESTS[k],st=status(k),a=P().v[k],[lo,hi]=rangeOf(k);const ch=a[a.length-1]-a[a.length-2];const fl=st.dir==='high'?'H':st.dir==='low'?'L':'';const col=st.k==='ok'?'var(--ink-3)':st.k==='bad'?'var(--bad-ink)':'var(--warn-ink)';
+ return `<tr><td><button class="term" style="font-size:13px;font-weight:600;text-decoration:none;color:var(--ink)" data-act="detail" data-v="${k}">${esc(t.term)}</button><div class="xs muted">${esc(t.name)}</div></td><td style="font-weight:700;color:${st.k==='ok'?'var(--ink)':col}">${fmt(a[a.length-1])}</td><td class="muted">${esc(t.unit)}</td><td>${lo===0?'&lt; '+fmt(hi):fmt(lo)+'–'+fmt(hi)}</td><td class="muted">${fmt(a[a.length-2])}</td><td>${Math.abs(ch)<1e-9?'0':(ch>0?'+':'−')+fmt(Math.abs(ch))}</td><td class="flag" style="color:${col}">${fl||'–'}</td></tr>`}).join('')}</tbody></table></div>`}
+function spark(key,w=110,h=32){const a=P().v[key];const [lo,hi]=rangeOf(key);const mn=Math.min(...a,lo)*0.95,mx=Math.max(...a,hi)*1.05;const Y=v=>(h-3)-(v-mn)/(mx-mn)*(h-6);const X=i=>3+i*(w-6)/(a.length-1);
+ const st=status(key);const col=st.k==='ok'?'var(--good)':st.k==='bad'?'var(--bad)':'var(--warn)';
+ return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><rect x="0" y="${Y(hi).toFixed(1)}" width="${w}" height="${Math.max(1,Y(lo)-Y(hi)).toFixed(1)}" fill="rgba(52,199,89,.14)" rx="3"/><polyline fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${a.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}"/><circle cx="${X(a.length-1)}" cy="${Y(a[a.length-1])}" r="4" fill="${col}" stroke="var(--card)" stroke-width="2"/></svg>`}
+function chart(key,span){const a=P().v[key].slice(-span),d=DATES.slice(-span);const [lo,hi]=rangeOf(key);const t=TESTS[key];const sm=simple();
+ const W=680,H=250,l=40,r=16,top=14,b=210;let mn=Math.min(...a,lo),mx=Math.max(...a,hi);const pad=(mx-mn)*0.25||1;mn=Math.max(0,mn-pad);mx=mx+pad;
+ const Y=v=>top+(mx-v)/(mx-mn)*(b-top);const X=i=>l+24+(a.length===1?0:i*(W-l-r-48)/(a.length-1));
+ const ticks=[];const step=niceStep((mx-mn)/4);for(let v=Math.ceil(mn/step)*step;v<=mx;v+=step)ticks.push(+v.toFixed(2));
+ const pts=a.map((v,i)=>({x:X(i),y:Y(v),v,d:d[i]}));
+ return `<div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t.name)} over time with your lab's range shaded">
+ <rect x="${l}" y="${Y(hi).toFixed(1)}" width="${W-l-r}" height="${(Y(lo)-Y(hi)).toFixed(1)}" rx="6" fill="rgba(52,199,89,.12)"/>
+ <text x="${W-r-8}" y="${(Y(hi)+16).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="var(--good-ink)">${sm?'Usual range':`Your lab’s range: ${fmt(lo)}–${fmt(hi)} ${esc(t.unit)}`}</text>
+ ${sm?'':ticks.map(v=>`<line x1="${l}" x2="${W-r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${l-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink-3)">${fmt(v)}</text>`).join('')}
+ <polyline fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}"/>
+ ${pts.map((p,i)=>{const last=i===pts.length-1;const st=status(key,p.v);const col=st.k==='ok'?'var(--good)':st.k==='bad'?'var(--bad)':'var(--warn)';return `<circle class="pt" tabindex="0" data-i="${i}" data-x="${(p.x/W*100).toFixed(2)}" data-y="${(p.y/H*100).toFixed(2)}" data-v="${fmt(p.v)} ${esc(t.unit)}" data-d="${p.d}" data-s="${esc(st.t)}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${last?7:5.5}" fill="${last?'var(--accent)':'var(--card)'}" stroke="var(--accent)" stroke-width="2.5"><title>${p.d}: ${fmt(p.v)} ${esc(t.unit)}</title></circle><text x="${p.x.toFixed(1)}" y="${b+24}" text-anchor="middle" font-size="11" fill="var(--ink-3)">${p.d}</text>${sm?((i===0||last)?`<text x="${p.x.toFixed(1)}" y="${(p.y-14).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${last?'Now':'Then'}</text>`:''):`<text x="${p.x.toFixed(1)}" y="${(p.y-12).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-2)">${fmt(p.v)}</text>`}`}).join('')}
+ </svg><div class="tipbox" hidden></div></div>${sm?`<p style="font-weight:600;margin-top:6px">${esc(moveWord(key,span,''))} · ${esc(slabel(status(key).t))}</p>`:''}`}
+function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(x)));const n=x/p;return (n<1.5?1:n<3?2:n<7?5:10)*p}
+
+/* ---------- shell ---------- */
+const NAV=[['summary','grid'],['vault','vault'],['trends','chart'],['doctor','clip'],['dictionary','book'],['family','people']];
+function renderSide(){const og=offGroups();
+ document.getElementById('side').innerHTML=`<div class="logo"><i></i>AasanReport</div>
+ <button class="profile" data-act="go" data-v="family" aria-label="Switch family profile"><span class="avatar">${P().initial}</span><span style="flex:1;min-width:0"><b style="display:block;font-size:14px">${esc(P().name)}</b><span class="abha">${ic('check','width="12" height="12"')} ABHA linked</span></span></button>
+ <div class="nav">${NAV.map(([v,i])=>`<button data-act="go" data-v="${v}" ${S.view===v?'aria-current="page"':''}>${ic(i)}<span>${esc(L()[v])}</span>${v==='vault'?`<span class="badge">${S.reports.length}</span>`:''}</button>`).join('')}</div>
+ <div class="nav"><div class="label">Reading mode</div><div style="padding:2px 6px">${modeSeg()}</div></div>
+ <div class="nav"><div class="label">Test groups</div>${GROUPS.map(([g,n0])=>{const n=gname(g);const c=Object.keys(TESTS).filter(k=>TESTS[k].group===g&&status(k).k!=='ok').length;return `<button data-act="group" data-v="${g}">${ic('drop')}<span>${esc(n)}</span>${c?`<span class="badge warn">${c}</span>`:''}</button>`}).join('')}</div>
+ <div class="nav"><div class="label">Family profiles</div><div style="display:flex;gap:8px;padding:2px 8px">${Object.entries(PROFILES).map(([id,p])=>`<button class="avatar" style="border:${S.profile===id?'2px solid var(--accent)':'0'}" data-act="profile" data-v="${id}" aria-label="Show ${esc(p.short)}’s report" ${S.profile===id?'aria-pressed="true"':''}>${p.initial}</button>`).join('')}</div></div>
+ <div class="display-box"><div class="nav"><div class="label" style="padding-left:0">Display</div></div>${displayToggles()}</div>`}
+function displayToggles(){return [['gentle','bulb','Gentle view'],['dark','moon','Dark mode'],['contrast','contrast','High contrast'],['large','textsize','Larger text'],['readAloud','speaker','Read aloud']].map(([k,i,l])=>`<div class="toggle-row">${ic(i,'width="18" height="18" style="color:var(--ink-2)"')}<span id="lbl-${k}">${l}</span><button class="switch" role="switch" aria-labelledby="lbl-${k}" aria-checked="${!!S[k]}" data-act="toggle" data-v="${k}"></button></div>`).join('')}
+function renderTabs(){const tabs=[['summary','grid','Summary'],['vault','vault','Vault'],['trends','chart','Trends'],['doctor','clip','Doctor'],['profile','person','Profile']];
+ document.getElementById('tabbar').innerHTML=tabs.map(([v,i,l])=>`<button data-act="go" data-v="${v}" ${S.view===v||(v==='profile'&&['family','dictionary','profile'].includes(S.view))?'aria-current="page"':''}>${ic(i)}<span>${esc(v==='summary'||v==='vault'||v==='trends'?L()[v]:l)}</span></button>`).join('')}
+function mtop(){return `<div class="mtop"><span class="logo"><i style="width:16px;height:16px;border-radius:50%;background:var(--accent);display:block"></i>AasanReport</span><span class="sp"></span><button class="avatar" style="border:0;width:30px;height:30px" data-act="go" data-v="profile" aria-label="Profile">${P().initial}</button></div>`}
+function header(title,sub,extra=''){return `<div class="head"><div class="titles"><h1>${esc(title)}</h1><p class="muted small">${sub}</p></div>${extra}</div>`}
+function searchBox(){return `<div class="search">${ic('search')}<label class="visually-hidden" for="q" style="position:absolute;left:-9999px">Search a term</label><input id="q" placeholder="${esc(L().search)}" value="${esc(S.search)}" autocomplete="off"><div id="qres"></div></div>`}
+function langSeg(){return `<div class="seg" role="group" aria-label="Language">${[['en','English'],['hi','हिन्दी'],['mr','मराठी']].map(([k,l])=>`<button data-act="lang" data-v="${k}" aria-pressed="${S.lang===k}">${l}</button>`).join('')}</div>`}
+function listenBtn(){return `<button class="btn" data-act="listen">${ic(S.speaking?'stop':'speaker')}${esc(S.speaking?L().stop:L().listen)}</button>`}
+
+/* ---------- views ---------- */
+function vSummary(){const p=P(),og=offGroups(),n=og.length,inR=Object.keys(TESTS).length-offKeys().length;
+ const aiG=TESTS[S.trendKey].group;const ai=AI[aiG];
+ return mtop()+`<div class="page">${header(L().summary,`${esc(p.date)} · ${esc(p.lab)} · Synced from ABHA`,searchBox()+modeSeg()+langSeg()+listenBtn())}
+ <section class="card hero" aria-label="Summary"><div class="lead"><p class="muted">${esc(L().greet)}, ${esc(p.short)}</p><p class="big">${simple()?(esc(n?L().smostly:L().all)+(n?'<br>'+esc(L().sdiscuss(n)):'')):(esc(n?L().mostly:L().all)+(n?'<br>'+esc(L().discuss(n)):''))}</p><p class="faint small" style="display:flex;gap:6px;align-items:center">${ic('check','width="14" height="14"')}${esc(L().notDx)} · Sample data</p></div>
+ <div class="tiles"><button class="tile g" data-act="scroll" data-v="results"><b class="num">${inR}</b><span>${esc(simple()?L().sinRange:L().inRange)}</span></button><button class="tile o" data-act="scroll" data-v="worth"><b class="num">${n}</b><span>${esc(simple()?L().stoDiscuss:L().toDiscuss)}</span></button><button class="tile b" data-act="go" data-v="trends"><b class="num">${changedCount()}</b><span>${esc(L().changed)}</span></button></div></section>
+ ${sinceCard()}
+ <div class="section-head" id="worth"><h2>${esc(L().worth)}</h2><button class="btn ghost" data-act="scroll" data-v="results">${esc(L().allResults)} ${ic('chev')}</button></div>
+ ${n?`<div class="grid g3">${og.map(g=>valueCard(leadKey(g))).join('')}</div>`:`<div class="card"><p>Nothing in this report is outside your lab’s ranges. Keep this report for your next visit.</p></div>`}
+ ${doctorBanner()}
+ <div class="grid split"><section class="card" aria-label="Trends">${trendHead()}${chart(S.trendKey,S.span)}<p class="note">Ranges differ between labs. Readings are compared against the lab range that came with each report.</p></section>${aiCard(aiG)}</div>
+ <div class="section-head" id="results"><h2>${esc(L().allResults)}</h2><span class="muted small">${Object.keys(TESTS).length} values · ${esc(p.lab)}</span></div>
+ <div class="grid split"><div style="display:flex;flex-direction:column;gap:12px">${GROUPS.map(([g,n2,s])=>groupPanel(g,gname(g),simple()?'':s,og.includes(g))).join('')}</div>
+ <div style="display:flex;flex-direction:column;gap:16px">${mythCard()}${rangesCard()}</div></div>
+ <h2>${esc(L().next)}</h2>
+ <div class="grid g3">${miniPrep()}${miniShare()}${miniDict()}</div>
+ <p class="proto">Prototype with sample data. AasanReport explains reports in plain language and never diagnoses. Ranges come from your lab.</p><p class="proto"><button class="btn ghost small" data-act="sources">Sources and limits</button></p></div>`}
+function doctorBanner(){const n=offGroups().length,bad=offKeys().some(k=>status(k).k==='bad');
+ const [title,body,tone]=!n?['Nothing to discuss urgently','Keep this report for your next routine check-up. Your doctor may still want to see it.','ok']:bad?['Talk to your doctor soon','One value is further outside your lab’s range. Book a visit within a week. It isn’t an emergency unless you feel unwell.','bad']:['Next step: talk to your doctor',`Bring these ${n} things to your next visit. There’s no rush, but don’t skip it.`,'warn'];
+ const bg=tone==='bad'?'rgba(255,59,48,.08)':tone==='warn'?'var(--accent-soft)':'rgba(52,199,89,.10)';
+ return `<section class="card" style="background:${bg};flex-direction:row;align-items:center;gap:18px;flex-wrap:wrap" aria-label="Talk to your doctor"><span class="icon-tile solid" style="width:44px;height:44px;border-radius:12px">${ic('clip')}</span><div style="flex:1;min-width:240px"><h3>${esc(title)}</h3><p class="small">${esc(body)}</p><button class="btn ghost small" style="padding:4px 0" data-act="sources" data-v="help">When to get help right away ${ic('chev')}</button></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="go" data-v="doctor">${ic('clip')}Prepare my visit</button><button class="btn soft" data-act="clinics">${ic('pin')}Doctor nearby</button></div></section>`}
+function sinceCard(){const ch=changes().slice(0,4);const n=changedCount();
+ return `<section class="card" id="since" aria-label="Since your last test"><div class="card-head"><span class="icon-tile" style="background:rgba(0,122,255,.12);color:var(--info)">${ic('sync')}</span><div class="t"><h3>Since your last test</h3><p class="muted xs">${simple()?'Compared with your test in May 2026':`Compared with May 2026 · ${n} ${n===1?'value':'values'} crossed a range line`}</p></div></div>
+ ${ch.length?`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">${ch.map(c=>{const t=TESTS[c.k];return `<button class="vcard" style="background:var(--fill);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px" data-act="detail" data-v="${c.k}">${simple()?`<b>${esc(nm(c.k))}</b><span class="small">${c.cur>c.prev?'↑ Went up':'↓ Went down'}</span>`:`<span class="small muted">${esc(t.name)} · ${esc(t.term)}</span><span class="num"><span class="faint">${(()=>{const d=String(c.cur).includes('.')?1:0;return c.prev.toFixed(d)})()} →</span> <b style="font-size:20px">${fmt(c.cur)}</b> <span class="xs muted">${esc(t.unit)}</span></span>`}<span style="align-self:flex-start">${pill({k:c.c,t:c.t})}</span></button>`}).join('')}</div>`:'<p class="small muted">Nothing moved across a range line since your last test.</p>'}</section>`}
+function gentleLine(st){return st.k==='ok'?'Inside your lab’s range':st.dir==='low'?(st.k==='bad'?'Further below your lab’s range':'A little below your lab’s range'):(st.k==='bad'?'Further above your lab’s range':'A little above your lab’s range')}
+function valueCard(k){const t=TESTS[k],st=status(k);
+ if(S.gentle&&!S.revealed[k])return `<div class="card"><div class="card-head"><div class="t"><h3>${esc(nm(k))}</h3><p class="muted small">${subLine(k)}</p></div></div>
+ <div style="display:flex;align-items:center;gap:8px">${pill(st)}</div><p>${esc(gentleLine(st))}</p><p class="small muted">${esc(st.k==='bad'?'Worth discussing with your doctor soon.':'Worth mentioning at your next visit.')}</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto"><button class="btn soft" data-act="reveal" data-v="${k}">Show numbers</button><button class="btn ghost" data-act="detail" data-v="${k}">What it means ${ic('chev')}</button></div></div>`;
+ return `<button class="card vcard" data-act="detail" data-v="${k}" aria-label="${esc(t.name)}: ${fmt(valOf(k))} ${esc(t.unit)}, ${esc(st.t)}. Open details">
+ <div class="card-head"><div class="t"><h3>${esc(nm(k))}</h3><p class="muted small">${subLine(k)}</p></div>${simple()?'':`<span class="info-btn">${ic('info')}</span>`}</div>
+ <div class="vrow"><span class="v num">${fmt(valOf(k))}</span><span class="u">${esc(t.unit)}</span><span class="pill-wrap" style="margin-left:auto">${pill(st)}</span></div>
+ ${rangeBar(k)}<p class="small" style="font-weight:600">${esc(changeLine(k))}</p></button>`}
+function trendHead(){return `<div class="card-head" style="flex-wrap:wrap;gap:10px"><h2 class="t">${esc(L().trends)}</h2><div class="seg" role="group" aria-label="Body system">${SYSTEMS.map(([k,n,c])=>`<button data-act="trend" data-v="${k}" aria-pressed="${S.trendKey===k}">${esc(simple()&&n==='Avg sugar'?'3-month sugar':L()[n==='Avg sugar'?'avg':n.toLowerCase()])}${simple()?'':` (${c})`}</button>`).join('')}</div></div>
+ <div class="card-head"><span class="t muted small">${esc(nm(S.trendKey))} · ${S.span===5?'2 years':S.span===3?'1 year':'6 months'}${simple()?'':` · ${S.span} reports`}</span><div class="seg" role="group" aria-label="Time range">${[[2,'6M'],[3,'1Y'],[5,'2Y']].map(([n,l])=>`<button data-act="span" data-v="${n}" aria-pressed="${S.span===n}">${l}</button>`).join('')}</div></div>`}
+function aiCard(g){const a=AI[g];const off=Object.keys(TESTS).filter(k=>TESTS[k].group===g&&status(k).k!=='ok');const sm=simple();const say=off.length?(sm?SAI[g][0]:a.say):(sm?'Everything in this group is normal.':'All values in this group are inside your lab’s range.');const know=sm?SAI[g][1]:a.know;
+ return `<section class="card ai" aria-label="${esc(L().meaning)}"><div class="card-head"><span class="icon-tile solid">${ic('spark')}</span><div class="t"><h3>${esc(L().meaning)}</h3><p class="muted xs">AI explanation · ${esc(gname(g))}</p></div></div>
+ <p>${esc(say)}</p>${off.length?`<div style="background:var(--card);border-radius:12px;padding:12px 14px"><p class="small" style="color:var(--accent);font-weight:600">Good to know</p><p class="small">${esc(know)}</p></div>${sm?`<p class="small" style="font-weight:600">The numbers behind this</p><div class="chips">${off.map(k=>`<span class="chip term-chip" role="button" tabindex="0" data-act="term" data-v="${k}">${esc(nm(k))}</span>`).join('')}</div>`:''}
+ <p class="small" style="font-weight:600">Ask your doctor</p><div class="qlist">${a.qs.map(q=>{const has=S.questions.some(x=>x.t===q);return `<div class="q">${ic('chat','width="16" height="16" style="color:var(--accent);flex:none;margin-top:2px"')}<span class="small">${esc(q)}</span><button class="btn ghost small" style="padding:0 2px" data-act="addq" data-v="${esc(q)}" ${has?'disabled':''}>${has?'Added':'Add'}</button></div>`}).join('')}</div>`:''}
+ <p class="note">${sm?`From your ${esc(P().lab)} report, ${esc(P().date)}`:`Range: ${esc(P().lab)} · ${esc(P().date)}${g==='blood'&&off.length?' · Context: NFHS-5':''} · Meanings: MedlinePlus`}</p>
+ <p class="note">${esc(L().notDx)} · I can’t see your symptoms, medicines or history. Only your doctor can say what this means for you.</p>
+ <button class="btn ghost small" style="padding:0;align-self:flex-start" data-act="sources">How this works: sources and limits ${ic('chev')}</button>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" data-act="speak" data-v="${esc(say)}">${ic('speaker')}${esc(L().listen)}</button><button class="btn soft" data-act="ask" data-v="${g}">${ic('chat')}Ask a question</button></div></section>`}
+function groupPanel(g,name,sub,open){const ks=Object.keys(TESTS).filter(k=>TESTS[k].group===g);const off=ks.filter(k=>status(k).k!=='ok');
+ return `<details class="card group" id="grp-${g}" ${open?'open':''}><summary><span class="icon-tile">${ic('drop')}</span><span style="flex:1"><h3>${esc(name)} <span class="muted small" style="font-weight:400">${esc(sub)}</span></h3><span class="small ${off.length?'':'muted'}" style="${off.length?'color:var(--warn-ink);font-weight:600':''}">${simple()?(off.length?`${off.length} of ${ks.length} need a look`:`All ${ks.length} normal`):(off.length?`${off.length} of ${ks.length} outside range${off.length>1?' · read together':''}`:`All ${ks.length} in range`)}</span></span>${ic('chev','class="chev" width="18" height="18"')}</summary>
+ <div class="body">${!simple()?vetTable(ks):`<div class="list">${ks.map(k=>{const t=TESTS[k],st=status(k);return `<div class="lrow"><span class="mark" style="background:${st.k==='ok'?'transparent':st.k==='bad'?'var(--bad)':'var(--warn)'}"></span><span class="nm"><b>${esc(nm(k))}</b>${termChip(k,t.term==='Creatinine'||t.term.length>8?t.name:t.term)}</span><span class="val num">${fmt(valOf(k))} <small>${esc(t.unit)}</small></span><span class="rb">${rangeBar(k)}</span><span class="st">${pill(st)}</span><button class="info-btn ib" data-act="detail" data-v="${k}" aria-label="About ${esc(t.name)}">${ic('info')}</button></div>`}).join('')}</div>`}
+ ${off.length?`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn soft" data-act="explain" data-v="${g}">${ic('spark')}Explain this group</button>${simple()?'':off.map(k=>`<button class="btn ghost small" data-act="detail" data-v="${k}">${esc(TESTS[k].term)} details</button>`).join('')}</div>`:''}</div></details>`}
+function mythCard(){const [m,a]=MYTHS[S.mythIdx];return `<section class="card tip" aria-label="Did you know"><div class="card-head"><span class="icon-tile">${ic('bulb')}</span><div class="t"><h3>Did you know?</h3><p class="muted xs">Myth: ${esc(m)}</p></div></div><p class="small">${esc(a)}</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="faint xs">${S.mythIdx+1} of ${MYTHS.length}</span><button class="btn ghost small" data-act="myth">Next myth ${ic('chev')}</button></div></section>`}
+function rangesCard(){const sex=S.rangeSex||P().sex;return `<section class="card" aria-label="Ranges for you"><div class="card-head"><span class="icon-tile">${ic('ruler')}</span><div class="t"><h3>Ranges for you</h3><p class="muted xs">${P().sex==='F'?'Women':'Men'} · ${esc(P().age)} · ${esc(P().lab)}</p></div></div>
+ <p class="small">${simple()?'“Normal” is different for women and men. See where you are on each.':'“Normal” depends on your lab, sex and age. Compare how your haemoglobin reads against each range.'}</p>
+ <div class="seg" role="group" aria-label="Compare ranges">${[['F','Women'],['M','Men']].map(([k,l])=>`<button data-act="rsex" data-v="${k}" aria-pressed="${sex===k}">${l}</button>`).join('')}</div>
+ <div><p class="small" style="font-weight:600">${simple()?esc(nm('hb')):`Haemoglobin ${fmt(valOf('hb'))} g/dL · ${sex==='F'?'women':'men'}: ${rangeOf('hb',sex).join('–')}`}</p>${rangeBar('hb',{sex})}<p class="xs muted">${esc(simple()?slabel(status('hb',null,sex).t):status('hb',null,sex).t)} against the ${sex==='F'?'women’s':'men’s'} range</p></div></section>`}
+function miniPrep(){const n=S.questions.filter(q=>!q.done).length;const r=Object.keys(S.reasons).filter(k=>S.reasons[k]);return `<section class="card"><div class="card-head"><span class="icon-tile">${ic('clip')}</span><div class="t"><h3>Prepare for your visit</h3><p class="muted xs">“What’s bothering you?”</p></div></div><p class="small">${n} questions ready${r.length?` · Reason: ${esc(r.join(', '))}`:''}</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto"><button class="btn" data-act="go" data-v="doctor">${ic('clip')}Open visit prep</button><button class="btn soft" data-act="clinics">${ic('pin')}Doctor nearby</button></div></section>`}
+function miniShare(){return `<section class="card"><div class="card-head"><span class="icon-tile">${ic('people')}</span><div class="t"><h3>Share with family</h3><p class="muted xs">Calm summary, no raw values</p></div></div><div class="bubble small">${esc(shareText(true))}</div><button class="btn" style="margin-top:auto;align-self:flex-start" data-act="go" data-v="family">${ic('share')}Share summary</button></section>`}
+function miniDict(){return `<section class="card"><div class="card-head"><span class="icon-tile">${ic('book')}</span><div class="t"><h3>Dictionary</h3><p class="muted xs">Plain meanings, checked by doctors</p></div></div><div class="chips">${['MCV','TSH','HbA1c','Reference range','Reactive / Non-reactive'].map(t=>`<button class="chip" data-act="dict" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div><button class="btn soft" style="margin-top:auto;align-self:flex-start" data-act="go" data-v="dictionary">${ic('book')}Open dictionary</button></section>`}
+
+function vTrends(){return mtop()+`<div class="page">${header(L().trends,`${esc(P().short)} · from ${S.reports.filter(r=>r.type==='Blood').length} blood reports in your Vault`)}
+ <section class="card">${trendHead()}${chart(S.trendKey,S.span)}
+ ${simple()?'':`<div class="grid g3" style="gap:10px">${(()=>{const a=P().v[S.trendKey].slice(-S.span);const mn=Math.min(...a),mx=Math.max(...a),ch=a[a.length-1]-a[0];const u=TESTS[S.trendKey].unit;return [['Lowest',fmt(mn),u],['Highest',fmt(mx),u],['Change',(ch>0?'+':ch<0?'−':'')+fmt(Math.abs(ch)),u]].map(([l,v,s])=>`<div style="background:var(--fill);border-radius:12px;padding:10px 14px"><p class="xs muted">${l}</p><p class="num" style="font-weight:600;font-size:18px">${v} <span class="xs muted">${esc(s)}</span></p></div>`).join('')})()}</div>`}</section>
+ ${aiCard(TESTS[S.trendKey].group)}
+ <h2>Everything you track</h2>
+ <section class="card" style="padding:8px 22px"><div class="list">${Object.keys(TESTS).map(k=>{const t=TESTS[k],st=status(k);return `<button class="rep" style="grid-template-columns:minmax(0,1fr) 120px 120px 24px" data-act="trendpick" data-v="${k}"><span><b style="display:block">${esc(nm(k))}</b><span class="xs muted">${simple()?esc(moveWord(k,5,' over 2 years')):`${esc(t.term)} · ${fmt(valOf(k))} ${esc(t.unit)}`}</span></span>${spark(k)}<span>${pill(st)}</span>${ic('chev','width="16" height="16" style="color:var(--ink-3)"')}</button>`}).join('')}</div></section></div>`}
+
+function vVault(){const f=S.vaultFilter,q=S.vaultQuery.toLowerCase();const types=['All','Blood','Imaging','Urine','Prescriptions'];
+ const list=S.reports.filter(r=>(f==='All'||r.type===f)&&(!q||(r.title+' '+r.lab+' '+r.date).toLowerCase().includes(q)));
+ const years=[...new Set(list.map(r=>r.year))].sort((a,b)=>b-a);
+ const tile=r=>{const m={Blood:['drop','var(--accent)'],Imaging:['scan','var(--good-ink)'],Urine:['drop','var(--info)'],Prescriptions:['rx','var(--info)'],Other:['doc','var(--ink-2)']}[r.type]||['doc','var(--ink-2)'];return `<span class="rtile" style="background:color-mix(in srgb,${m[1]} 14%,transparent);color:${m[1]}">${ic(m[0])}</span>`};
+ return mtop()+`<div class="page">${header(L().vault,`${S.reports.length} reports since 2019 · ${S.synced?'Synced just now':'Synced with ABHA 2 min ago'}`,`<div class="search">${ic('search')}<input id="vq" placeholder="Search reports, tests, labs" value="${esc(S.vaultQuery)}" aria-label="Search reports"></div><button class="btn soft" data-act="sync" id="syncbtn">${ic('sync')}Sync with ABHA</button><button class="btn" data-act="upload">${ic('plus')}Add report</button>`)}
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">${[[S.reports.length,'Reports stored','vault','var(--accent)'],[S.reports.filter(r=>r.title.includes('check-up')).length+7,'Check-ups compared','chart','var(--info)'],[6,'Labs and hospitals','link','var(--good-ink)'],[Object.values(S.reminders).filter(x=>!x).length,'Due soon','bell','var(--warn-ink)']].map(([n,l,i,c])=>`<div class="card stat"><span class="rtile" style="background:color-mix(in srgb,${c} 14%,transparent);color:${c}">${ic(i)}</span><span><b class="num">${n}</b> <span style="font-weight:600">${l}</span></span></div>`).join('')}</div>
+ <div class="grid split"><section class="card"><div class="card-head" style="flex-wrap:wrap"><h2 class="t">All reports</h2><div class="seg" role="group" aria-label="View">${['timeline','grid'].map(m=>`<button data-act="vmode" data-v="${m}" aria-pressed="${S.vaultMode===m}">${m==='timeline'?'Timeline':'Grid'}</button>`).join('')}</div></div>
+ <div class="chips" role="group" aria-label="Filter by type">${types.map(t=>`<button class="chip" data-act="vfilter" data-v="${t}" aria-pressed="${f===t}">${t} ${t==='All'?S.reports.length:S.reports.filter(r=>r.type===t).length}</button>`).join('')}</div>
+ ${list.length?(S.vaultMode==='grid'?`<div class="repgrid">${list.map(r=>`<button class="repcard" data-act="report" data-v="${r.id}">${tile(r)}<b>${esc(r.title)}</b><span class="xs muted">${esc(r.lab)} · ${esc(r.date)}</span>${pill({k:r.k,t:r.status})}</button>`).join('')}</div>`:
+ years.map(y=>`<div class="year">${y}</div>${list.filter(r=>r.year===y).map(r=>`<button class="rep" data-act="report" data-v="${r.id}">${tile(r)}<span><b style="display:block">${esc(r.title)}</b><span class="xs muted">${esc(r.lab)}</span></span><span class="small rd">${esc(r.date)}</span><span class="small rt muted">${esc(r.type)}${r.tests?` · ${r.tests} tests`:''}</span><span class="rs">${pill({k:r.k,t:r.status})}</span>${ic('chev','width="16" height="16" style="color:var(--ink-3)"')}</button>`).join('')}`).join('')):'<p class="muted">No reports match. Try another filter or search.</p>'}
+ </section>
+ <div style="display:flex;flex-direction:column;gap:16px">
+ <section class="card"><div class="card-head"><span class="icon-tile">${ic('chart')}</span><div class="t"><h3>Trends from your Vault</h3><p class="muted xs">Built from every stored report</p></div></div>
+ ${SYSTEMS.map(([k,n,c])=>`<button class="rep" style="grid-template-columns:minmax(0,1fr) 110px;padding:6px 0" data-act="trendgo" data-v="${k}"><span><b style="display:block">${esc(n)} (${c})</b><span class="xs muted">${fmt(valOf(k))} ${esc(TESTS[k].unit)}</span></span>${spark(k)}</button>`).join('')}</section>
+ <section class="card tip"><div class="card-head"><span class="icon-tile">${ic('bell')}</span><div class="t"><h3>Don’t miss</h3><p class="muted xs">Based on how often you usually test</p></div></div>
+ ${[['hba1c','HbA1c due in January','Every 6 months'],['lipid','Lipid profile','Last checked March 2024']].map(([k,a,b])=>`<div style="display:flex;align-items:center;gap:8px"><span style="flex:1"><b class="small" style="display:block">${a}</b><span class="xs muted">${b}</span></span><button class="btn ${S.reminders[k]?'soft':'ghost'} small" data-act="remind" data-v="${k}" aria-pressed="${S.reminders[k]}">${S.reminders[k]?'Reminder set':'Remind me'}</button></div>`).join('')}</section>
+ <section class="card"><div class="card-head"><span class="icon-tile">${ic('plus')}</span><div class="t"><h3>Add a report</h3><p class="muted xs">PDF or photo, or straight from your lab</p></div></div>
+ <button class="btn soft" data-act="upload" style="border:1.5px dashed var(--accent);background:var(--accent-soft);padding:18px;border-radius:12px;flex-direction:column">${ic('upload','width="22" height="22"')}<span>Choose PDFs or photos</span><span class="xs" style="font-weight:400">We read the values and file them for you</span></button>
+ <div style="display:flex;gap:8px"><button class="btn soft" style="flex:1" data-act="upload">${ic('cam')}Scan with phone</button><button class="btn soft" style="flex:1" data-act="sync">${ic('link')}From lab</button></div></section>
+ <section class="card"><div class="card-head"><span class="icon-tile">${ic('lock')}</span><div class="t"><h3>Who can see your Vault</h3><p class="muted xs">Encrypted. You stay in control.</p></div></div>
+ ${S.access.map((a,i)=>`<div style="display:flex;align-items:center;gap:10px"><span class="avatar" style="width:32px;height:32px">${ic(a.who.startsWith('Clinic')||a.who.startsWith('Dr')?'clip':'people','width="16" height="16"')}</span><span style="flex:1;min-width:0"><b class="small" style="display:block">${esc(a.who)}</b><span class="xs muted">${esc(a.what)}</span></span><button class="btn danger small" style="padding:5px 10px" data-act="revoke" data-v="${i}">Revoke</button></div>`).join('')||'<p class="small muted">Only you can see your Vault.</p>'}
+ <form id="accessform" style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px"><label class="small" for="aw" style="font-weight:600">Give access</label><div class="field"><input id="aw" placeholder="Name, e.g. Dr Mehta" required></div><div class="field"><select id="at" aria-label="What they can see"><option value="Summary only">Summary only</option><option value="Full report">Full report</option></select><select id="ad" aria-label="For how long"><option value="7 days">7 days</option><option value="30 days">30 days</option><option value="Until I revoke">Until I revoke</option></select></div><button class="btn soft" type="submit">${ic('lock')}Give access</button></form></section>
+ </div></div><p class="proto">Prototype with sample reports. Files you add stay in this browser tab only.</p></div>`}
+
+function vDoctor(){return mtop()+`<div class="page">${header(L().doctor,'Your doctor will ask: “What’s bothering you?” Have the answer ready.')}
+ <div class="grid g2"><section class="card"><h3>Why did you get tested?</h3><div class="chips" role="group" aria-label="Reasons">${Object.keys(S.reasons).map(r=>`<button class="chip" data-act="reason" data-v="${esc(r)}" aria-pressed="${S.reasons[r]}">${esc(r)}</button>`).join('')}</div>
+ <form id="reasonform" class="field"><input id="rnew" placeholder="Add a symptom, e.g. dizziness" aria-label="Add a symptom"><button class="btn soft" type="submit">${ic('plus')}Add</button></form>
+ <label for="notes" style="font-weight:600">Notes for the doctor</label><textarea id="notes" placeholder="When did it start? Anything that makes it better or worse?">${esc(S.notes)}</textarea></section>
+ <section class="card"><h3>Questions to ask</h3><div class="qlist">${S.questions.map((q,i)=>`<label class="q"><input type="checkbox" data-act="qdone" data-v="${i}" ${q.done?'checked':''}><span style="${q.done?'text-decoration:line-through;color:var(--ink-3)':''}">${esc(q.t)}</span><button class="x" type="button" data-act="qdel" data-v="${i}" aria-label="Remove question">${ic('x','width="16" height="16"')}</button></label>`).join('')||'<p class="muted small">No questions yet. Add one, or tap “Add” on an explanation.</p>'}</div>
+ <form id="qform" class="field"><input id="qnew" placeholder="Add your own question" aria-label="Add a question"><button class="btn soft" type="submit">${ic('plus')}Add</button></form></section></div>
+ <div class="grid g2"><section class="card"><div class="card-head"><span class="icon-tile">${ic('doc')}</span><div class="t"><h3>Save for your doctor</h3><p class="muted xs">Values to discuss, reason, notes and questions in one summary</p></div></div><button class="btn" data-act="visitsummary">${ic('doc')}Create visit summary</button></section>
+ <section class="card"><div class="card-head"><span class="icon-tile">${ic('pin')}</span><div class="t"><h3>Find a doctor nearby</h3><p class="muted xs">Sample listings for the prototype</p></div></div>
+ <div class="seg" role="group" aria-label="Specialty">${['All','General physician','Thyroid and sugar specialist'].map(s=>`<button data-act="cfilter" data-v="${s}" aria-pressed="${S.clinicFilter===s}">${s==='Thyroid and sugar specialist'?'Specialist':s}</button>`).join('')}</div>
+ ${CLINICS.filter(c=>S.clinicFilter==='All'||c[1]===S.clinicFilter).map(c=>`<div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:10px"><span style="flex:1"><b class="small" style="display:block">${c[0]}</b><span class="xs muted">${c[1]} · ${c[2]} · ${c[3]}</span></span><a class="btn soft small" style="padding:6px 12px" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c[1]+' near me')}" target="_blank" rel="noopener">Directions</a></div>`).join('')}</section></div></div>`}
+
+function shareText(short){if(S.lang!=='en')return shareTextL(short);const p=P(),og=offGroups();const names=og.map(g=>GROUPS.find(x=>x[0]===g)[1].toLowerCase());
+ let t=`${p.short}’s report · ${p.date}\n${og.length?`Mostly in range. ${og.length} ${og.length===1?'area':'areas'} to discuss with the doctor${names.length?': '+names.join(', '):''}.`:'Everything is inside the lab’s ranges.'} ${offKeys().some(k=>status(k).k==='bad')?'One value should be discussed soon.':'Nothing urgent.'}`;
+ if(!short&&S.includeValues) t+='\n\n'+offKeys().map(k=>`${TESTS[k].name} (${TESTS[k].term}): ${fmt(valOf(k))} ${TESTS[k].unit}, ${status(k).t.toLowerCase()} (lab range ${rangeOf(k).join('–')})`).join('\n');
+ if(!short) t+='\n\nSent from AasanReport. This is a summary, not a diagnosis.';return t}
+function shareTextL(short){const p=P(),og=offGroups(),l=S.lang;const names=og.map(g=>look(GROUPS.find(x=>x[0]===g)[1])).join(', ');const bad=offKeys().some(k=>status(k).k==='bad');
+ let t=l==='hi'?`${p.short} की रिपोर्ट · ${tr(p.date)}\n${og.length?`ज़्यादातर नतीजे दायरे में हैं। ${og.length} ${og.length===1?'बात डॉक्टर से पूछनी है':'बातें डॉक्टर से पूछनी हैं'}: ${names}।`:'सभी नतीजे लैब के दायरे में हैं।'} ${bad?'एक मान पर जल्द बात करनी चाहिए।':'कुछ भी तुरंत चिंता वाला नहीं।'}`
+  :`${p.short} यांचा अहवाल · ${tr(p.date)}\n${og.length?`बहुतेक निकाल मर्यादेत आहेत. ${og.length} ${og.length===1?'गोष्ट डॉक्टरांशी बोलायची आहे':'गोष्टी डॉक्टरांशी बोलायच्या आहेत'}: ${names}.`:'सर्व निकाल लॅबच्या मर्यादेत आहेत.'} ${bad?'एका मूल्याबद्दल लवकर बोलायला हवे.':'काहीही तातडीचे नाही.'}`;
+ if(!short&&S.includeValues)t+='\n\n'+offKeys().map(k=>`${look(TESTS[k].name)||TESTS[k].name} (${TESTS[k].term}): ${fmt(valOf(k))} ${TESTS[k].unit}, ${tr(status(k).t)} (${l==='hi'?'लैब दायरा':'लॅब मर्यादा'} ${rangeOf(k).join('–')})`).join('\n');
+ if(!short)t+='\n\n'+(l==='hi'?'AasanReport से भेजा गया। यह सारांश है, निदान नहीं।':'AasanReport वरून पाठवले. हा सारांश आहे, निदान नाही.');return t}
+function vFamily(){const txt=shareText(false);return mtop()+`<div class="page">${header(L().family,'Share a calm summary, and switch between family members’ reports')}
+ <section class="card"><h3>Family profiles</h3><div class="grid g3">${Object.entries(PROFILES).map(([id,p])=>{const n=(()=>{const cur=S.profile;S.profile=id;const c=offGroups().length;S.profile=cur;return c})();return `<button class="card vcard" style="flex-direction:row;align-items:center;${S.profile===id?'box-shadow:0 0 0 2px var(--accent)':''}" data-act="profile" data-v="${id}" aria-pressed="${S.profile===id}"><span class="avatar">${p.initial}</span><span style="flex:1"><b style="display:block">${esc(p.name)}</b><span class="xs muted">${esc(p.rel)} · ${esc(p.date)}</span></span>${n?pill({k:'warn',t:n+' to discuss'}):pill({k:'ok',t:'All in range'})}</button>`}).join('')}</div></section>
+ <div class="grid g2"><section class="card"><h3>Share ${esc(P().short)}’s summary</h3><p class="small muted">Send to</p><div class="chips">${Object.keys(S.recipients).map(r=>`<button class="chip" data-act="recip" data-v="${esc(r)}" aria-pressed="${S.recipients[r]}">${esc(r)}</button>`).join('')}</div>
+ <div class="toggle-row"><span id="lbl-iv">Include full values</span><button class="switch" role="switch" aria-labelledby="lbl-iv" aria-checked="${S.includeValues}" data-act="incvals"></button></div>
+ <p class="note">Off by default, so raw numbers don’t spread worry in family chats.</p>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="copyshare">${ic('copy')}Copy message</button><a class="btn soft" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${ic('share')}Open WhatsApp</a></div></section>
+ <section class="card"><h3>Preview</h3><div class="bubble">${esc(txt)}</div><p class="note">Recipients: ${esc(Object.keys(S.recipients).filter(r=>S.recipients[r]).join(', ')||'none selected')}</p></section></div></div>`}
+
+function vDictionary(){const q=S.dictQuery.toLowerCase();const entries=[...Object.entries(TESTS).map(([k,t])=>({k,title:simple()?`${SNAME[k]} · ${t.name.includes(t.term)?t.name:t.name+' ('+t.term+')'}`:(t.name.includes(t.term)?t.name:`${t.name} (${t.term})`),body:t.what,low:t.low,high:t.high})),...DICT_EXTRA.map(([a,b])=>({title:a,body:b}))].filter(e=>!q||(e.title+' '+e.body).toLowerCase().includes(q));
+ return mtop()+`<div class="page">${header(L().dictionary,'Plain meanings for the words on your report, checked by doctors')}
+ <div class="search" style="width:100%;max-width:520px">${ic('search')}<input id="dq" placeholder="Look up a term, e.g. MCV" value="${esc(S.dictQuery)}" aria-label="Look up a term"></div>
+ <div class="grid split"><section class="card" style="padding:8px 22px">${entries.map(e=>`<div style="padding:14px 0;border-bottom:1px solid var(--line)"><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">${esc(e.title)}</b>${e.k?`<button class="btn ghost small" data-act="detail" data-v="${e.k}">Your value ${ic('chev')}</button>`:''}</div><p class="small">${esc(e.body)}</p>${e.low?`<p class="xs muted">Low: ${esc(e.low)}</p><p class="xs muted">High: ${esc(e.high)}</p>`:''}</div>`).join('')||'<p class="muted" style="padding:14px 0">No match. Try a shorter word.</p>'}</section>
+ <section class="card"><h3>Trusted explainers</h3><p class="xs muted">Short videos reviewed by a physician</p>${VIDEOS.map((v,i)=>`<button class="rep" style="grid-template-columns:64px minmax(0,1fr)" data-act="video" data-v="${i}"><span class="rtile" style="width:64px;height:44px;background:var(--accent);color:var(--accent-ink)">${ic('play')}</span><span><b style="display:block" class="small">${v[0]}</b><span class="xs muted">${v[1]} · Reviewed by a physician</span></span></button>`).join('')}</section></div></div>`}
+
+function vProfile(){return mtop()+`<div class="page">${header(L().profile,`${esc(P().name)} · ABHA linked`)}
+ <section class="card"><h3>Reading mode</h3>${modeSeg()}<p class="small muted">${simple()?'Simple: plain words and simple graphs. Tap any underlined term to see what it means.':'Veteran: medical terms, exact ranges and a full results table.'}</p></section>
+ <section class="card"><h3>Language</h3>${langSeg()}</section>
+ <section class="card"><h3>Display</h3>${displayToggles()}</section>
+ <section class="card"><h3>More</h3>${[['family','people',L().family],['dictionary','book',L().dictionary]].map(([v,i,l])=>`<button class="rep" style="grid-template-columns:40px minmax(0,1fr) 24px" data-act="go" data-v="${v}"><span class="rtile" style="background:var(--accent-soft);color:var(--accent)">${ic(i)}</span><b>${esc(l)}</b>${ic('chev','width="16" height="16"')}</button>`).join('')}</section></div>`}
+
+/* ---------- overlays ---------- */
+function openLayer(html,kind='drawer'){const l=document.getElementById('layer');l.innerHTML=`<div class="scrim ${kind==='modal'?'modal-scrim':''}" data-act="closebg"><div class="${kind}" role="dialog" aria-modal="true">${html}</div></div>`;translateDOM(l);bindChart(l);const f=l.querySelector('button,input,textarea');f&&f.focus()}
+function closeLayer(){document.getElementById('layer').innerHTML=''}
+function detail(k){const t=TESTS[k],st=status(k),[lo,hi]=rangeOf(k);const has=S.questions.some(q=>q.t.includes(t.term)||q.t.includes(t.name.toLowerCase()));
+ openLayer(`<div class="card-head"><div class="t"><p class="muted xs">${esc(gname(t.group))}</p><h2>${esc(nm(k))}</h2><p class="muted small">${subLine(k)}</p></div><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div>
+ <section class="card"><div class="vrow"><span class="v num">${fmt(valOf(k))}</span><span class="u">${esc(t.unit)}</span><span style="margin-left:auto">${pill(st)}</span></div>${rangeBar(k,{big:true})}<p class="small muted">${simple()?esc(changeLine(k)):`Your lab’s range for ${P().sex==='F'?'women':'men'}: ${fmt(lo)}–${fmt(hi)} ${esc(t.unit)} · ${esc(changeText(k))}`}</p></section>
+ <section class="card"><h3>${simple()?'What it is':'What it measures'}</h3><p class="small">${esc(t.what)}</p><h3>If it’s ${st.dir==='high'?'high':'low'}</h3><p class="small">${esc(st.dir==='high'?t.high:t.low)}</p><h3>If it’s ${st.dir==='high'?'low':'high'}</h3><p class="small">${esc(st.dir==='high'?t.low:t.high)}</p></section>
+ <section class="card"><h3>Over time</h3>${chart(k,5)}</section>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="addq" data-v="${esc(`What does my ${t.name.toLowerCase()} (${t.term}) of ${fmt(valOf(k))} ${t.unit} mean for me?`)}">${ic('chat')}Add to visit questions</button><button class="btn soft" data-act="speak" data-v="${esc(`${t.name}, ${fmt(valOf(k))} ${t.unit}. ${st.t}. ${t.what}`)}">${ic('speaker')}${esc(L().listen)}</button></div>
+ <p class="note">${esc(L().notDx)} · Your doctor reads this value with your other results and how you feel.</p>`)}
+function sourcesModal(focus){const p=P();
+ openLayer(`<div class="card-head"><span class="icon-tile">${ic('info')}</span><h2 class="t">Sources and limits</h2><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div>
+ <section class="card" id="helpnow" style="background:rgba(255,59,48,.08);${focus==='help'?'box-shadow:0 0 0 2px var(--bad)':''}"><h3>Get help right away if</h3><p class="small">You have chest pain, severe breathlessness, fainting, confusion or heavy bleeding. Don’t wait for a report: call your doctor or 112.</p></section>
+ <section class="card"><h3>Where your numbers come from</h3><p class="small">Your values and normal ranges come from your lab report:</p><p class="small" style="font-weight:600">${esc(p.lab)} · ${esc(p.date)}</p><p class="small">Ranges differ between labs, sexes and ages, so AasanReport always uses your lab’s own range.</p></section>
+ <section class="card"><h3>Where the explanations come from</h3><p class="small">Plain-language meanings are based on MedlinePlus (US National Library of Medicine) and checked by doctors.</p><p class="small">Facts about how common something is in India come from the National Family Health Survey (NFHS-5).</p><p class="small muted">In this prototype, all explanations are sample text.</p></section>
+ <section class="card"><h3>What AasanReport can’t do</h3><div class="qlist small">${['It can’t diagnose a condition or tell you its cause.','It can’t see your symptoms, medicines, pregnancy or history.','It doesn’t prescribe treatment or replace your doctor’s advice.','It can misread a blurry scan. Check values against your paper report.'].map(x=>`<div class="q">${ic('x','width="16" height="16" style="color:var(--bad-ink);flex:none;margin-top:2px"')}<span>${esc(x)}</span></div>`).join('')}</div></section>
+ <button class="btn" data-act="go" data-v="doctor">${ic('clip')}Prepare my visit</button>`,'modal');
+ if(focus==='help'){setTimeout(()=>document.getElementById('helpnow')?.scrollIntoView({block:'center'}),30)}}
+function explain(g){const a=AI[g];openLayer(`<div class="card-head"><span class="icon-tile solid">${ic('spark')}</span><div class="t"><h2>${esc(GROUPS.find(x=>x[0]===g)[1])}</h2><p class="muted xs">AI explanation · read together</p></div><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div>${aiCard(g)}`)}
+function ask(g){openLayer(`<div class="card-head"><div class="t"><h2>Ask about your report</h2><p class="muted xs">Prototype: answers are pre-written examples</p></div><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div>
+ <form id="askform" class="field"><input id="askq" placeholder="e.g. Is this because of iron?" aria-label="Your question"><button class="btn" type="submit">Ask</button></form><div class="chips">${['Is this because of iron?','Should I change my diet?','Is this serious?'].map(q=>`<button class="chip" data-act="askchip" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div><div id="answer"></div>`,'modal')}
+function answer(q){const s=q.toLowerCase();let a;
+ if(/iron|ferritin|b12|आयरन|लोह/.test(s)) a='Your report doesn’t include an iron test such as ferritin. Low haemoglobin together with low MCV and MCH is a pattern doctors often check iron for. You can ask your doctor whether a ferritin test makes sense for you.';
+ else if(/diet|eat|food|medicine|tablet|supplement|खान|आहार|दवा|औषध/.test(s)) a='Diet and medicine choices depend on your whole health picture, so they’re for your doctor or a dietitian to advise. I can add this question to your visit list.';
+ else if(/serious|danger|worr|cancer|die|गंभीर|ख़तरा|खतरा|चिंता|काळजी/.test(s)) a='I can’t judge how serious something is for you. In this report, none of your values is far outside your lab’s range. Your doctor can tell you what it means, especially alongside how you feel.';
+ else a='I can explain what each value measures and how it compares with your lab’s range, but I can’t diagnose. Want me to add this question to your visit list?';
+ document.getElementById('answer').innerHTML=`<section class="card ai"><p class="small muted">You asked: ${esc(q)}</p><p>${esc(a)}</p><p class="note">${esc(L().notDx)} · Sources: your lab’s ranges, MedlinePlus</p><button class="btn soft" data-act="addq" data-v="${esc(q)}">${ic('plus')}Add to visit questions</button></section>`;translateDOM(document.getElementById('answer'))}
+function visitSummary(){const p=P();const r=Object.keys(S.reasons).filter(k=>S.reasons[k]);const txt=`AasanReport visit summary\n${p.name} · ${p.sex==='F'?'Female':'Male'}, ${p.age}\nReport: ${p.date}, ${p.lab}\n\nValues to discuss\n${offKeys().map(k=>`• ${TESTS[k].name} (${TESTS[k].term}): ${fmt(valOf(k))} ${TESTS[k].unit} · ${status(k).t} · lab range ${rangeOf(k).join('–')}`).join('\n')||'• None outside range'}\n\nReason for test: ${r.join(', ')||'not given'}\nNotes: ${S.notes||'none'}\n\nQuestions\n${S.questions.filter(q=>!q.done).map(q=>'• '+q.t).join('\n')||'• none'}\n\nThis summary explains the report in plain language. It is not a diagnosis.`;
+ openLayer(`<div class="card-head"><h2 class="t">Visit summary</h2><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div><pre class="summary" id="vs">${esc(txt)}</pre><div style="display:flex;gap:8px"><button class="btn" data-act="copy" data-v="vs">${ic('copy')}Copy summary</button></div><p class="note">Paste it into a message to your clinic, or show it on your phone at the visit.</p><p class="note">The summary stays in English so your doctor can read it.</p>`,'modal')}
+function reportSheet(id){const r=S.reports.find(x=>x.id===id);openLayer(`<div class="card-head"><div class="t"><p class="muted xs">${esc(r.type)}</p><h2>${esc(r.title)}</h2><p class="muted small">${esc(r.lab)} · ${esc(r.date)}</p></div><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div>
+ <section class="card"><div style="display:flex;gap:8px;align-items:center"><span style="flex:1">${r.tests?`${r.tests} tests read and filed`:'Document stored'}</span>${pill({k:r.k,t:r.status})}</div>${r.processing?'<p class="small muted">Reading values from your file…</p>':''}</section>
+ ${r.current?`<button class="btn" data-act="go" data-v="summary">${ic('grid')}Open in Summary</button>`:r.type==='Blood'?`<button class="btn soft" data-act="go" data-v="trends">${ic('chart')}See it in Trends</button>`:''}
+ <button class="btn soft" data-act="sharereport" data-v="${id}">${ic('lock')}Give a doctor access for 7 days</button>`,'modal')}
+function video(i){const v=VIDEOS[i];openLayer(`<div class="card-head"><h2 class="t">${esc(v[0])}</h2><button class="close" data-act="close" aria-label="Close">${ic('x','width="16" height="16"')}</button></div><div style="aspect-ratio:16/9;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center">${ic('play','width="48" height="48"')}</div><p class="small">${esc(v[2])}</p><p class="note">${v[1]} · Reviewed by a physician · Video placeholder in this prototype</p>`,'modal')}
+function clinics(){S.clinicsOpen=true;go('doctor');setTimeout(()=>{const el=[...document.querySelectorAll('h3')].find(h=>h.textContent==='Find a doctor nearby');el&&el.scrollIntoView({behavior:'smooth',block:'center'})},50)}
+
+/* ---------- speech & toast ---------- */
+function speak(text){const synth=window.speechSynthesis;if(!S.readAloud){toast('Read aloud is off. Turn it on in Display.');return}
+ if(!synth){toast('Read aloud isn’t available in this browser.');return}
+ if(S.speaking){synth.cancel();S.speaking=false;render();return}text=tr(text);
+ try{const u=new SpeechSynthesisUtterance(text);u.lang={en:'en-IN',hi:'hi-IN',mr:'mr-IN'}[S.lang];u.rate=.95;u.onend=u.onerror=()=>{S.speaking=false;render()};synth.cancel();synth.speak(u);S.speaking=true;render();toast('Reading aloud…')}catch(e){toast('Read aloud isn’t available here.')}}
+function spokenSummary(){const og=offGroups();const names=og.map(g=>GROUPS.find(x=>x[0]===g)[1]);
+ if(S.lang==='hi') return `${P().short}, आपकी रिपोर्ट ${P().date} की है। ज़्यादातर नतीजे सामान्य दायरे में हैं। ${og.length} बातें डॉक्टर से पूछने लायक हैं। यह निदान नहीं है।`;
+ if(S.lang==='mr') return `${P().short}, तुमचा अहवाल ${P().date} चा आहे. बहुतेक निकाल सामान्य मर्यादेत आहेत. ${og.length} गोष्टी डॉक्टरांशी बोलण्यासारख्या आहेत. हे निदान नाही.`;
+ return `${P().short}, your report from ${P().date}. ${og.length?`Most of your results are in range. ${og.length} areas are worth discussing with your doctor: ${names.join(', ')}.`:'Everything is inside your lab’s ranges.'} This is not a diagnosis.`}
+let toastT;function toast(msg,undo){msg=tr(msg);const l=document.getElementById('toastbox')||Object.assign(document.body.appendChild(document.createElement('div')),{id:'toastbox'});l.innerHTML=`<div class="toast" role="status">${esc(msg)}${undo?'<button data-act="undo">Undo</button>':''}</div>`;clearTimeout(toastT);toastT=setTimeout(()=>{l.innerHTML=''},undo?5000:2600)}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('Copied')}catch(e){toast('Select the text and copy it yourself')}}
+
+/* ---------- full translation layer (en → hi, mr) ---------- */
+const TRD=new Map();
+function D(rows){for(const [en,hi,mr] of rows)TRD.set(en,{hi,mr:mr??hi})}
+D([
+['ABHA linked','ABHA से जुड़ा','ABHA शी जोडलेले'],['Test groups','जाँच समूह','तपासणी गट'],['Blood count','ब्लड काउंट','रक्त तपासणी'],['Thyroid','थायरॉइड','थायरॉइड'],['Sugar','शुगर','साखर'],['Lipids','लिपिड (वसा)','लिपिड (चरबी)'],['Vitamins','विटामिन','जीवनसत्त्वे'],['Kidney and liver','किडनी और लिवर','मूत्रपिंड आणि यकृत'],
+['Family profiles','परिवार की प्रोफ़ाइल','कुटुंबाची प्रोफाइल'],['Display','डिस्प्ले','डिस्प्ले'],['Dark mode','डार्क मोड','डार्क मोड'],['High contrast','हाई कॉन्ट्रास्ट','उच्च कॉन्ट्रास्ट'],['Larger text','बड़ा टेक्स्ट','मोठा मजकूर'],['Read aloud','पढ़कर सुनाएँ','मोठ्याने वाचा'],
+['Synced from ABHA','ABHA से सिंक','ABHA वरून सिंक'],['Sample data','नमूना डेटा','नमुना डेटा'],['Doctor','डॉक्टर','डॉक्टर'],['Profile','प्रोफ़ाइल','प्रोफाइल'],['Dictionary','शब्दकोश','शब्दकोश'],
+['Since your last test','पिछली जाँच के बाद से','मागील तपासणीपासून'],['Moved out of range','दायरे से बाहर गया','मर्यादेबाहेर गेले'],['Back in range','वापस दायरे में','पुन्हा मर्यादेत'],['Still slightly low','अब भी थोड़ा कम','अजूनही थोडे कमी'],['Still slightly high','अब भी थोड़ा ज़्यादा','अजूनही थोडे जास्त'],['Still low','अब भी कम','अजूनही कमी'],['Still high','अब भी ज़्यादा','अजूनही जास्त'],
+['Slightly low','थोड़ा कम','थोडे कमी'],['Slightly high','थोड़ा ज़्यादा','थोडे जास्त'],['In range','दायरे में','मर्यादेत'],['Low','कम','कमी'],['High','ज़्यादा','जास्त'],['discuss soon','जल्द डॉक्टर से बात करें','लवकर डॉक्टरांशी बोला'],
+['Same as last test','पिछली जाँच जैसा','मागील तपासणीइतकेच'],['May 2026','मई 2026','मे 2026'],
+['Nothing moved across a range line since your last test.','पिछली जाँच के बाद कोई मान दायरे की रेखा के पार नहीं गया।','मागील तपासणीनंतर कोणतेही मूल्य मर्यादा ओलांडून गेले नाही.'],
+['Nothing in this report is outside your lab’s ranges. Keep this report for your next visit.','इस रिपोर्ट में कुछ भी आपकी लैब के दायरे से बाहर नहीं है। अगली मुलाक़ात के लिए इसे रखें।','या अहवालात काहीही तुमच्या लॅबच्या मर्यादेबाहेर नाही. पुढच्या भेटीसाठी हा अहवाल ठेवा.'],
+// tests
+['Haemoglobin','हीमोग्लोबिन','हिमोग्लोबिन'],['carries oxygen in your blood','खून में ऑक्सीजन ले जाता है','रक्तात ऑक्सिजन वाहून नेते'],
+['The protein in red blood cells that carries oxygen around your body.','लाल रक्त कोशिकाओं का वह प्रोटीन जो पूरे शरीर में ऑक्सीजन पहुँचाता है।','लाल रक्तपेशींमधील प्रथिन जे शरीरभर ऑक्सिजन पोहोचवते.'],
+['Below range can come with tiredness or breathlessness. Doctors read it with MCV and MCH to see why.','दायरे से कम होने पर थकान या साँस फूल सकती है। डॉक्टर कारण समझने के लिए इसे MCV और MCH के साथ देखते हैं।','मर्यादेपेक्षा कमी असल्यास थकवा किंवा धाप लागू शकते. कारण समजण्यासाठी डॉक्टर हे MCV आणि MCH सोबत पाहतात.'],
+['Above about 16 g/dL, blood can thicken. Both directions are worth checking.','लगभग 16 g/dL से ऊपर खून गाढ़ा हो सकता है। कम और ज़्यादा, दोनों की जाँच ज़रूरी है।','सुमारे 16 g/dL पेक्षा जास्त झाल्यास रक्त घट्ट होऊ शकते. कमी आणि जास्त, दोन्ही तपासणे महत्त्वाचे आहे.'],
+['Red blood cells','लाल रक्त कोशिकाएँ','लाल रक्तपेशी'],['number of red cells','लाल कोशिकाओं की संख्या','लाल पेशींची संख्या'],['How many red blood cells are in a small amount of blood.','थोड़े से खून में कितनी लाल रक्त कोशिकाएँ हैं।','थोड्या रक्तात किती लाल रक्तपेशी आहेत.'],['Fewer red cells often goes with low haemoglobin.','कम लाल कोशिकाएँ अक्सर कम हीमोग्लोबिन के साथ होती हैं।','कमी लाल पेशी अनेकदा कमी हिमोग्लोबिनसोबत असतात.'],['More red cells can thicken the blood.','ज़्यादा लाल कोशिकाएँ खून को गाढ़ा कर सकती हैं।','जास्त लाल पेशींमुळे रक्त घट्ट होऊ शकते.'],
+['Average red cell size','लाल कोशिकाओं का औसत आकार','लाल पेशींचा सरासरी आकार'],['how big your red cells are','आपकी लाल कोशिकाएँ कितनी बड़ी हैं','तुमच्या लाल पेशी किती मोठ्या आहेत'],['The average size of your red blood cells.','आपकी लाल रक्त कोशिकाओं का औसत आकार।','तुमच्या लाल रक्तपेशींचा सरासरी आकार.'],['Smaller cells are often looked at alongside iron levels.','छोटी कोशिकाओं को अक्सर आयरन के स्तर के साथ देखा जाता है।','लहान पेशी अनेकदा लोहाच्या पातळीसोबत पाहिल्या जातात.'],['Larger cells are often looked at alongside B12 and folate.','बड़ी कोशिकाओं को अक्सर B12 और फोलेट के साथ देखा जाता है।','मोठ्या पेशी अनेकदा B12 आणि फोलेटसोबत पाहिल्या जातात.'],
+['Haemoglobin per cell','प्रति कोशिका हीमोग्लोबिन','प्रति पेशी हिमोग्लोबिन'],['oxygen-carrier in each cell','हर कोशिका में ऑक्सीजन वाहक','प्रत्येक पेशीतील ऑक्सिजन वाहक'],['How much haemoglobin each red cell carries on average.','हर लाल कोशिका औसतन कितना हीमोग्लोबिन ले जाती है।','प्रत्येक लाल पेशी सरासरी किती हिमोग्लोबिन वाहून नेते.'],['Usually moves together with MCV.','आमतौर पर MCV के साथ ऊपर-नीचे होता है।','सहसा MCV सोबत बदलते.'],
+['White blood cells','सफ़ेद रक्त कोशिकाएँ','पांढऱ्या रक्तपेशी'],['cells that fight infection','संक्रमण से लड़ने वाली कोशिकाएँ','संसर्गाशी लढणाऱ्या पेशी'],['Cells that help your body fight infection.','कोशिकाएँ जो शरीर को संक्रमण से लड़ने में मदद करती हैं।','शरीराला संसर्गाशी लढायला मदत करणाऱ्या पेशी.'],['A low count can also matter; doctors read it with symptoms.','कम संख्या भी मायने रखती है; डॉक्टर इसे लक्षणों के साथ देखते हैं।','कमी संख्याही महत्त्वाची असते; डॉक्टर ती लक्षणांसोबत पाहतात.'],['High does not only mean infection; doctors read it with symptoms.','ज़्यादा का मतलब सिर्फ़ संक्रमण नहीं; डॉक्टर इसे लक्षणों के साथ देखते हैं।','जास्त म्हणजे फक्त संसर्ग नाही; डॉक्टर हे लक्षणांसोबत पाहतात.'],
+['Platelets','प्लेटलेट्स','प्लेटलेट्स'],['cells that help blood clot','खून जमाने में मदद करने वाली कोशिकाएँ','रक्त गोठण्यास मदत करणाऱ्या पेशी'],['Small cells that help blood clot when you are cut.','छोटी कोशिकाएँ जो कटने पर खून जमाने में मदद करती हैं।','जखम झाल्यावर रक्त गोठण्यास मदत करणाऱ्या लहान पेशी.'],['Low platelets can mean easier bruising.','कम प्लेटलेट्स से आसानी से नील पड़ सकते हैं।','कमी प्लेटलेट्समुळे सहज काळे-निळे डाग पडू शकतात.'],['High platelets are read with other values.','ज़्यादा प्लेटलेट्स को दूसरे मानों के साथ देखा जाता है।','जास्त प्लेटलेट्स इतर मूल्यांसोबत पाहिले जातात.'],
+['Thyroid signal','थायरॉइड संकेत','थायरॉइड संकेत'],['tells your thyroid how hard to work','थायरॉइड को बताता है कि कितना काम करे','थायरॉइडला किती काम करायचे ते सांगते'],['A hormone from the brain that tells the thyroid gland how hard to work.','दिमाग़ से आने वाला हार्मोन जो थायरॉइड ग्रंथि को बताता है कि कितना काम करना है।','मेंदूतून येणारा हार्मोन जो थायरॉइड ग्रंथीला किती काम करायचे ते सांगतो.'],['Low TSH is read together with FT4.','कम TSH को FT4 के साथ देखा जाता है।','कमी TSH हे FT4 सोबत पाहिले जाते.'],['High TSH is read together with FT4. One reading is often re-checked.','ज़्यादा TSH को FT4 के साथ देखा जाता है। एक रीडिंग की अक्सर दोबारा जाँच होती है।','जास्त TSH हे FT4 सोबत पाहिले जाते. एकच वाचन अनेकदा पुन्हा तपासले जाते.'],
+['Thyroid hormone','थायरॉइड हार्मोन','थायरॉइड हार्मोन'],['the hormone your thyroid makes','आपका थायरॉइड जो हार्मोन बनाता है','तुमचा थायरॉइड बनवतो तो हार्मोन'],['The main hormone your thyroid makes.','आपके थायरॉइड द्वारा बनाया जाने वाला मुख्य हार्मोन।','तुमचा थायरॉइड बनवणारा मुख्य हार्मोन.'],['Read together with TSH.','TSH के साथ देखा जाता है।','TSH सोबत पाहिले जाते.'],
+['Fasting sugar','खाली पेट शुगर','उपाशीपोटी साखर'],['blood sugar after 8–10 hours without food','8–10 घंटे बिना खाए खून में शुगर','8–10 तास न खाल्ल्यानंतर रक्तातील साखर'],['Your blood sugar after not eating for 8 to 10 hours.','8 से 10 घंटे कुछ न खाने के बाद आपके खून में शुगर।','8 ते 10 तास काही न खाल्ल्यानंतरची तुमची रक्तातील साखर.'],['Low fasting sugar can make you feel shaky or faint.','कम फ़ास्टिंग शुगर से कंपकंपी या चक्कर आ सकता है।','उपाशीपोटी साखर कमी असल्यास थरथर किंवा चक्कर येऊ शकते.'],['Above range is read together with HbA1c.','दायरे से ऊपर होने पर इसे HbA1c के साथ देखा जाता है।','मर्यादेपेक्षा जास्त असल्यास हे HbA1c सोबत पाहिले जाते.'],
+['Average sugar','औसत शुगर','सरासरी साखर'],['your sugar average over 3 months','3 महीनों की औसत शुगर','3 महिन्यांची सरासरी साखर'],['Your average blood sugar over about the last three months.','पिछले लगभग तीन महीनों में आपकी औसत शुगर।','मागील सुमारे तीन महिन्यांतील तुमची सरासरी साखर.'],['Rarely a concern on its own.','अकेले में शायद ही चिंता की बात होती है।','स्वतंत्रपणे क्वचितच काळजीचे कारण असते.'],['Changes slowly, so trends over months matter most.','धीरे-धीरे बदलता है, इसलिए महीनों का रुझान सबसे अहम है।','हळूहळू बदलते, म्हणून महिन्यांचा कल सर्वात महत्त्वाचा.'],
+['Cholesterol (LDL)','कोलेस्ट्रॉल (LDL)','कोलेस्ट्रॉल (LDL)'],['often called “bad” cholesterol','अक्सर “बुरा” कोलेस्ट्रॉल कहा जाता है','अनेकदा “वाईट” कोलेस्ट्रॉल म्हणतात'],['Cholesterol carried in LDL particles, which can build up in blood vessels.','LDL कणों में रहने वाला कोलेस्ट्रॉल, जो नसों में जमा हो सकता है।','LDL कणांमधील कोलेस्ट्रॉल, जे रक्तवाहिन्यांमध्ये साचू शकते.'],['Lower is usually fine.','कम आमतौर पर ठीक है।','कमी असणे सहसा ठीक असते.'],['Above range is read with your other heart-health factors.','दायरे से ऊपर होने पर इसे दिल की सेहत के दूसरे पहलुओं के साथ देखा जाता है।','मर्यादेपेक्षा जास्त असल्यास हृदयाच्या इतर घटकांसोबत पाहिले जाते.'],
+['Cholesterol (HDL)','कोलेस्ट्रॉल (HDL)','कोलेस्ट्रॉल (HDL)'],['often called “good” cholesterol','अक्सर “अच्छा” कोलेस्ट्रॉल कहा जाता है','अनेकदा “चांगले” कोलेस्ट्रॉल म्हणतात'],['Cholesterol carried in HDL particles, which help clear cholesterol.','HDL कणों में रहने वाला कोलेस्ट्रॉल, जो कोलेस्ट्रॉल साफ़ करने में मदद करता है।','HDL कणांमधील कोलेस्ट्रॉल, जे कोलेस्ट्रॉल काढून टाकण्यास मदत करते.'],['Low HDL is read with LDL and lifestyle.','कम HDL को LDL और जीवनशैली के साथ देखा जाता है।','कमी HDL हे LDL आणि जीवनशैलीसोबत पाहिले जाते.'],['Usually fine.','आमतौर पर ठीक है।','सहसा ठीक असते.'],
+['Triglycerides','ट्राइग्लिसराइड्स','ट्रायग्लिसराइड्स'],['a type of fat in your blood','खून में एक तरह की वसा','रक्तातील एक प्रकारची चरबी'],['A type of fat in your blood, affected by recent meals.','खून में एक तरह की वसा, जिस पर हाल के भोजन का असर होता है।','रक्तातील एक प्रकारची चरबी, ज्यावर अलीकडच्या जेवणाचा परिणाम होतो.'],['Read with your other lipids.','दूसरे लिपिड के साथ देखा जाता है।','इतर लिपिडसोबत पाहिले जाते.'],
+['Vitamin D','विटामिन D','व्हिटॅमिन D'],['for bones and immunity','हड्डियों और रोग-प्रतिरोधक क्षमता के लिए','हाडे आणि रोगप्रतिकारशक्तीसाठी'],['A vitamin your body needs for strong bones and immunity.','मज़बूत हड्डियों और रोग-प्रतिरोधक क्षमता के लिए ज़रूरी विटामिन।','मजबूत हाडे आणि रोगप्रतिकारशक्तीसाठी आवश्यक जीवनसत्त्व.'],['Low vitamin D is very common in India.','भारत में विटामिन D की कमी बहुत आम है।','भारतात व्हिटॅमिन D ची कमतरता खूप सामान्य आहे.'],['Very high levels usually come from supplements.','बहुत ज़्यादा स्तर आमतौर पर सप्लीमेंट से होता है।','खूप जास्त पातळी सहसा पूरक गोळ्यांमुळे असते.'],
+['Vitamin B12','विटामिन B12','व्हिटॅमिन B12'],['for nerves and red cells','नसों और लाल कोशिकाओं के लिए','नसा आणि लाल पेशींसाठी'],['A vitamin needed for nerves and making red cells.','नसों और लाल कोशिकाएँ बनाने के लिए ज़रूरी विटामिन।','नसा आणि लाल पेशी तयार करण्यासाठी आवश्यक जीवनसत्त्व.'],['Low B12 can affect red cell size.','कम B12 लाल कोशिकाओं के आकार पर असर डाल सकता है।','कमी B12 मुळे लाल पेशींच्या आकारावर परिणाम होऊ शकतो.'],['Usually from supplements.','आमतौर पर सप्लीमेंट से।','सहसा पूरक गोळ्यांमुळे.'],
+['Kidney filter marker','किडनी फ़िल्टर मार्कर','मूत्रपिंड फिल्टर निर्देशक'],['how well kidneys filter','किडनी कितनी अच्छी तरह छानती है','मूत्रपिंड किती चांगले गाळतात'],['A waste product your kidneys filter out.','एक अपशिष्ट पदार्थ जिसे आपकी किडनी छानकर बाहर निकालती है।','मूत्रपिंड गाळून बाहेर टाकतात असा टाकाऊ पदार्थ.'],['Read with other kidney tests.','किडनी की दूसरी जाँचों के साथ देखा जाता है।','मूत्रपिंडाच्या इतर तपासण्यांसोबत पाहिले जाते.'],
+['Liver enzyme','लिवर एंज़ाइम','यकृत एन्झाइम'],['a marker of liver cells','लिवर कोशिकाओं का संकेतक','यकृत पेशींचा निर्देशक'],['An enzyme found mostly in the liver.','एक एंज़ाइम जो ज़्यादातर लिवर में पाया जाता है।','मुख्यतः यकृतात आढळणारे एन्झाइम.'],['Read with other liver tests.','लिवर की दूसरी जाँचों के साथ देखा जाता है।','यकृताच्या इतर तपासण्यांसोबत पाहिले जाते.'],
+['Thyroid profile','थायरॉइड प्रोफ़ाइल','थायरॉइड प्रोफाइल'],['Glucose and HbA1c','ग्लूकोज़ और HbA1c','ग्लुकोज आणि HbA1c'],['Cholesterol','कोलेस्ट्रॉल','कोलेस्ट्रॉल'],['D and B12','D और B12','D आणि B12'],['KFT and LFT','KFT और LFT','KFT आणि LFT'],
+// AI
+['Haemoglobin, MCV and MCH are all slightly low. Doctors read these three together: they describe red cells that are a little small and carry a little less oxygen.','हीमोग्लोबिन, MCV और MCH तीनों थोड़े कम हैं। डॉक्टर इन तीनों को साथ में देखते हैं: ये बताते हैं कि लाल कोशिकाएँ थोड़ी छोटी हैं और थोड़ी कम ऑक्सीजन ले जाती हैं।','हिमोग्लोबिन, MCV आणि MCH तिन्ही थोडे कमी आहेत. डॉक्टर हे तिन्ही एकत्र पाहतात: लाल पेशी थोड्या लहान आहेत आणि थोडा कमी ऑक्सिजन वाहून नेतात, असे ते दाखवतात.'],
+['Slightly low haemoglobin is common in Indian women: 57% of women aged 15–49 (NFHS-5). It is usually simple to look into.','थोड़ा कम हीमोग्लोबिन भारतीय महिलाओं में आम है: 15–49 वर्ष की 57% महिलाएँ (NFHS-5)। इसकी जाँच आमतौर पर आसान होती है।','थोडे कमी हिमोग्लोबिन भारतीय महिलांमध्ये सामान्य आहे: 15–49 वयोगटातील 57% महिला (NFHS-5). याची तपासणी सहसा सोपी असते.'],
+['Could my low haemoglobin be related to iron or B12?','क्या मेरा कम हीमोग्लोबिन आयरन या B12 से जुड़ा हो सकता है?','माझे कमी हिमोग्लोबिन लोह किंवा B12 शी संबंधित असू शकते का?'],['When should I repeat my blood count?','मुझे ब्लड काउंट दोबारा कब करवाना चाहिए?','मी रक्त तपासणी पुन्हा कधी करावी?'],
+['Your TSH, the signal that tells the thyroid how hard to work, is above your lab’s range. FT4, the hormone itself, is in range. Doctors look at both together.','आपका TSH, यानी वह संकेत जो थायरॉइड को बताता है कि कितना काम करे, आपकी लैब के दायरे से ऊपर है। FT4, यानी ख़ुद हार्मोन, दायरे में है। डॉक्टर दोनों को साथ में देखते हैं।','तुमचा TSH, म्हणजे थायरॉइडला किती काम करायचे ते सांगणारा संकेत, तुमच्या लॅबच्या मर्यादेपेक्षा जास्त आहे. FT4, म्हणजे प्रत्यक्ष हार्मोन, मर्यादेत आहे. डॉक्टर दोन्ही एकत्र पाहतात.'],
+['TSH can change with time of day and recent illness, so one reading is often re-checked before anything else.','TSH दिन के समय और हाल की बीमारी के साथ बदल सकता है, इसलिए अक्सर पहले एक रीडिंग की दोबारा जाँच होती है।','TSH दिवसाची वेळ आणि अलीकडील आजारानुसार बदलू शकतो, म्हणून अनेकदा आधी एक वाचन पुन्हा तपासले जाते.'],
+['Should I re-test my TSH, and when?','क्या मुझे TSH दोबारा जाँचना चाहिए, और कब?','मी TSH पुन्हा तपासावा का, आणि कधी?'],['Do I need any other thyroid tests?','क्या मुझे थायरॉइड की कोई और जाँच चाहिए?','मला थायरॉइडच्या आणखी तपासण्या लागतील का?'],
+['Your fasting sugar and your 3-month average (HbA1c) are above your lab’s range and have crept up over two years. Doctors read these two together.','आपकी खाली पेट शुगर और 3 महीने की औसत शुगर (HbA1c) आपकी लैब के दायरे से ऊपर हैं और दो साल में धीरे-धीरे बढ़ी हैं। डॉक्टर इन दोनों को साथ में देखते हैं।','तुमची उपाशीपोटी साखर आणि 3 महिन्यांची सरासरी (HbA1c) तुमच्या लॅबच्या मर्यादेपेक्षा जास्त आहेत आणि दोन वर्षांत हळूहळू वाढली आहेत. डॉक्टर हे दोन्ही एकत्र पाहतात.'],
+['HbA1c reflects about three months, so it moves slowly. The trend matters more than one reading.','HbA1c लगभग तीन महीनों को दिखाता है, इसलिए धीरे बदलता है। एक रीडिंग से ज़्यादा रुझान मायने रखता है।','HbA1c सुमारे तीन महिने दाखवतो, म्हणून हळू बदलतो. एका वाचनापेक्षा कल महत्त्वाचा.'],
+['What do my sugar trends mean for me?','मेरी शुगर के रुझान का मेरे लिए क्या मतलब है?','माझ्या साखरेच्या कलाचा माझ्यासाठी काय अर्थ आहे?'],['How often should I check HbA1c?','मुझे HbA1c कितनी बार जाँचना चाहिए?','मी HbA1c किती वेळा तपासावा?'],
+['LDL, often called “bad” cholesterol, is above your lab’s range and has risen slowly. HDL and triglycerides are inside range.','LDL, जिसे अक्सर “बुरा” कोलेस्ट्रॉल कहते हैं, आपकी लैब के दायरे से ऊपर है और धीरे-धीरे बढ़ा है। HDL और ट्राइग्लिसराइड्स दायरे में हैं।','LDL, ज्याला अनेकदा “वाईट” कोलेस्ट्रॉल म्हणतात, तुमच्या लॅबच्या मर्यादेपेक्षा जास्त आहे आणि हळूहळू वाढले आहे. HDL आणि ट्रायग्लिसराइड्स मर्यादेत आहेत.'],
+['Doctors read cholesterol together with blood pressure, sugar, age and family history.','डॉक्टर कोलेस्ट्रॉल को ब्लड प्रेशर, शुगर, उम्र और पारिवारिक इतिहास के साथ देखते हैं।','डॉक्टर कोलेस्ट्रॉल रक्तदाब, साखर, वय आणि कौटुंबिक इतिहासासोबत पाहतात.'],
+['Is my LDL worth acting on now?','क्या मेरे LDL पर अभी कुछ करना चाहिए?','माझ्या LDL बाबत आत्ता काही करावे का?'],['When should I re-check my lipids?','मुझे लिपिड दोबारा कब जाँचने चाहिए?','मी लिपिड पुन्हा कधी तपासावे?'],
+['Vitamin D is below your lab’s range and has dipped over two years. B12 is inside range but close to the lower edge.','विटामिन D आपकी लैब के दायरे से कम है और दो साल में घटा है। B12 दायरे में है लेकिन निचले किनारे के पास है।','व्हिटॅमिन D तुमच्या लॅबच्या मर्यादेपेक्षा कमी आहे आणि दोन वर्षांत घटले आहे. B12 मर्यादेत आहे पण खालच्या टोकाजवळ आहे.'],
+['Low vitamin D is very common in India, including in young adults.','भारत में विटामिन D की कमी बहुत आम है, युवाओं में भी।','भारतात व्हिटॅमिन D ची कमतरता खूप सामान्य आहे, तरुणांमध्येही.'],
+['Should I take anything for vitamin D?','क्या मुझे विटामिन D के लिए कुछ लेना चाहिए?','मी व्हिटॅमिन D साठी काही घ्यावे का?'],['Should B12 be re-checked?','क्या B12 दोबारा जाँचना चाहिए?','B12 पुन्हा तपासावे का?'],
+['Your kidney and liver markers are inside your lab’s range.','आपके किडनी और लिवर के संकेतक आपकी लैब के दायरे में हैं।','तुमचे मूत्रपिंड आणि यकृताचे निर्देशक तुमच्या लॅबच्या मर्यादेत आहेत.'],['These are often checked once a year as part of a routine panel.','इन्हें अक्सर साल में एक बार रूटीन जाँच में देखा जाता है।','हे अनेकदा वर्षातून एकदा नियमित तपासणीत पाहिले जातात.'],['Do I need these checked every year?','क्या इन्हें हर साल जाँचना ज़रूरी है?','हे दरवर्षी तपासणे आवश्यक आहे का?'],
+['All values in this group are inside your lab’s range.','इस समूह के सभी मान आपकी लैब के दायरे में हैं।','या गटातील सर्व मूल्ये तुमच्या लॅबच्या मर्यादेत आहेत.'],
+['AI explanation','AI व्याख्या','AI स्पष्टीकरण'],['Good to know','जानने लायक','जाणून घेण्यासारखे'],['Ask your doctor','डॉक्टर से पूछें','डॉक्टरांना विचारा'],['Add','जोड़ें','जोडा'],['Added','जोड़ा गया','जोडले'],
+['Context: NFHS-5','संदर्भ: NFHS-5','संदर्भ: NFHS-5'],['Meanings: MedlinePlus','अर्थ: MedlinePlus','अर्थ: MedlinePlus'],
+['I can’t see your symptoms, medicines or history. Only your doctor can say what this means for you.','मैं आपके लक्षण, दवाएँ या इतिहास नहीं देख सकता। इसका आपके लिए क्या मतलब है, यह सिर्फ़ आपके डॉक्टर बता सकते हैं।','मला तुमची लक्षणे, औषधे किंवा इतिहास दिसत नाही. याचा तुमच्यासाठी काय अर्थ आहे ते फक्त तुमचे डॉक्टर सांगू शकतात.'],
+['Ask a question','सवाल पूछें','प्रश्न विचारा'],['Ranges differ between labs. Readings are compared against the lab range that came with each report.','हर लैब के दायरे अलग होते हैं। हर रीडिंग की तुलना उसी रिपोर्ट के लैब दायरे से की जाती है।','प्रत्येक लॅबच्या मर्यादा वेगळ्या असतात. प्रत्येक वाचनाची तुलना त्या अहवालासोबत आलेल्या लॅब मर्यादेशी केली जाते.'],
+['Explain this group','इस समूह को समझाएँ','हा गट समजावून सांगा'],['read together','साथ में देखें','एकत्र पाहा'],['Did you know?','क्या आप जानते हैं?','तुम्हाला माहीत आहे का?'],['Next myth','अगला भ्रम','पुढील गैरसमज'],
+// myths
+['Only low values are a problem','सिर्फ़ कम मान ही समस्या हैं','फक्त कमी मूल्येच समस्या असतात'],['High haemoglobin matters too. Above about 16 g/dL, blood can thicken. Both directions are worth checking.','ज़्यादा हीमोग्लोबिन भी मायने रखता है। लगभग 16 g/dL से ऊपर खून गाढ़ा हो सकता है। दोनों दिशाओं की जाँच ज़रूरी है।','जास्त हिमोग्लोबिनही महत्त्वाचे आहे. सुमारे 16 g/dL पेक्षा जास्त झाल्यास रक्त घट्ट होऊ शकते. दोन्ही बाजू तपासणे महत्त्वाचे आहे.'],
+['A high white cell count only means infection','सफ़ेद कोशिकाएँ ज़्यादा होने का मतलब सिर्फ़ संक्रमण है','पांढऱ्या पेशी जास्त म्हणजे फक्त संसर्ग'],['A low count can also matter, and a very high one is read carefully. Doctors read it with your symptoms.','कम संख्या भी मायने रखती है, और बहुत ज़्यादा संख्या को ध्यान से देखा जाता है। डॉक्टर इसे आपके लक्षणों के साथ देखते हैं।','कमी संख्याही महत्त्वाची असते, आणि खूप जास्त संख्या काळजीपूर्वक पाहिली जाते. डॉक्टर ती तुमच्या लक्षणांसोबत पाहतात.'],
+['One flagged value means something is wrong','एक चिह्नित मान का मतलब है कि कुछ गड़बड़ है','एक चिन्हांकित मूल्य म्हणजे काहीतरी बिघडले आहे'],['Doctors read values together and with symptoms. Many flags are common and simple to look into.','डॉक्टर मानों को साथ में और लक्षणों के साथ देखते हैं। कई चिह्न आम होते हैं और उनकी जाँच आसान होती है।','डॉक्टर मूल्ये एकत्र आणि लक्षणांसोबत पाहतात. अनेक चिन्हे सामान्य असतात आणि तपासायला सोपी असतात.'],
+['“Normal” is the same at every lab','हर लैब में “सामान्य” एक जैसा होता है','प्रत्येक लॅबमध्ये “सामान्य” सारखेच असते'],['Each lab sets its own ranges, and they differ by machine, sex and age. AasanReport always shows your lab’s range.','हर लैब अपने दायरे तय करती है, और वे मशीन, लिंग और उम्र के हिसाब से अलग होते हैं। AasanReport हमेशा आपकी लैब का दायरा दिखाता है।','प्रत्येक लॅब स्वतःच्या मर्यादा ठरवते, आणि त्या यंत्र, लिंग आणि वयानुसार वेगळ्या असतात. AasanReport नेहमी तुमच्या लॅबची मर्यादा दाखवते.'],
+['Ranges for you','आपके लिए दायरे','तुमच्यासाठी मर्यादा'],['Women','महिलाएँ','महिला'],['Men','पुरुष','पुरुष'],
+['“Normal” depends on your lab, sex and age. Compare how your haemoglobin reads against each range.','“सामान्य” आपकी लैब, लिंग और उम्र पर निर्भर करता है। देखें कि आपका हीमोग्लोबिन हर दायरे में कैसा दिखता है।','“सामान्य” तुमच्या लॅब, लिंग आणि वयावर अवलंबून असते. प्रत्येक मर्यादेत तुमचे हिमोग्लोबिन कसे दिसते ते पाहा.'],
+['Prepare for your visit','मुलाक़ात की तैयारी करें','भेटीची तयारी करा'],['“What’s bothering you?”','“आपको क्या परेशानी है?”','“तुम्हाला काय त्रास होतो आहे?”'],['Open visit prep','तैयारी खोलें','तयारी उघडा'],['Doctor nearby','पास के डॉक्टर','जवळचे डॉक्टर'],
+['Share with family','परिवार से साझा करें','कुटुंबासोबत शेअर करा'],['Calm summary, no raw values','शांत सारांश, कच्चे आँकड़े नहीं','शांत सारांश, कच्चे आकडे नाहीत'],['Share summary','सारांश साझा करें','सारांश शेअर करा'],
+['Plain meanings, checked by doctors','सरल अर्थ, डॉक्टरों द्वारा जाँचे गए','सोपे अर्थ, डॉक्टरांनी तपासलेले'],['Open dictionary','शब्दकोश खोलें','शब्दकोश उघडा'],
+['Reference range','संदर्भ दायरा','संदर्भ मर्यादा'],['Reactive / Non-reactive','Reactive / Non-reactive (रिएक्टिव / नॉन-रिएक्टिव)','Reactive / Non-reactive (रिअॅक्टिव्ह / नॉन-रिअॅक्टिव्ह)'],['PP sugar','PP शुगर (खाने के बाद)','PP साखर (जेवणानंतर)'],['Fasting','फ़ास्टिंग (खाली पेट)','उपाशीपोटी'],
+['Prototype with sample data. AasanReport explains reports in plain language and never diagnoses. Ranges come from your lab.','नमूना डेटा वाला प्रोटोटाइप। AasanReport रिपोर्ट को आसान भाषा में समझाता है और कभी निदान नहीं करता। दायरे आपकी लैब से आते हैं।','नमुना डेटासह प्रोटोटाइप. AasanReport अहवाल सोप्या भाषेत समजावतो आणि कधीही निदान करत नाही. मर्यादा तुमच्या लॅबकडून येतात.'],
+['Lowest','सबसे कम','सर्वात कमी'],['Highest','सबसे ज़्यादा','सर्वात जास्त'],['Change','बदलाव','बदल'],['Everything you track','आप जो कुछ ट्रैक करते हैं','तुम्ही ट्रॅक करता ते सर्व'],['2 years','2 साल','2 वर्षे'],['1 year','1 साल','1 वर्ष'],['6 months','6 महीने','6 महिने'],
+// vault
+['Search reports, tests, labs','रिपोर्ट, जाँच, लैब खोजें','अहवाल, तपासण्या, लॅब शोधा'],['Sync with ABHA','ABHA से सिंक करें','ABHA शी सिंक करा'],['Add report','रिपोर्ट जोड़ें','अहवाल जोडा'],['Syncing…','सिंक हो रहा है…','सिंक होत आहे…'],
+['Reports stored','रिपोर्ट सुरक्षित','साठवलेले अहवाल'],['Check-ups compared','चेक-अप की तुलना','तुलना केलेल्या तपासण्या'],['Labs and hospitals','लैब और अस्पताल','लॅब आणि रुग्णालये'],['Due soon','जल्द होने वाली','लवकर करायच्या'],
+['All reports','सभी रिपोर्ट','सर्व अहवाल'],['Timeline','टाइमलाइन','टाइमलाइन'],['Grid','ग्रिड','ग्रिड'],['All','सभी','सर्व'],['Blood','रक्त','रक्त'],['Imaging','इमेजिंग','इमेजिंग'],['Urine','पेशाब','लघवी'],['Prescriptions','पर्चे','प्रिस्क्रिप्शन'],['Other','अन्य','इतर'],
+['Complete health check-up','पूरा हेल्थ चेक-अप','संपूर्ण आरोग्य तपासणी'],['Prescription','पर्चा','प्रिस्क्रिप्शन'],['Chest X-ray','छाती का एक्स-रे','छातीचा एक्स-रे'],['Urine routine','पेशाब की रूटीन जाँच','लघवीची नियमित तपासणी'],['Ultrasound, abdomen','पेट का अल्ट्रासाउंड','पोटाचा अल्ट्रासाउंड'],['Vitamin D and B12','विटामिन D और B12','व्हिटॅमिन D आणि B12'],['Vitamin B12 re-check','विटामिन B12 दोबारा जाँच','व्हिटॅमिन B12 पुन्हा तपासणी'],['General physician','जनरल फ़िज़िशियन','जनरल फिजिशियन'],
+['Medicines','दवाएँ','औषधे'],['Normal','सामान्य','सामान्य'],['All in range','सब दायरे में','सर्व मर्यादेत'],['Filed','दर्ज','नोंदवले'],['Reading values…','मान पढ़े जा रहे हैं…','मूल्ये वाचत आहे…'],
+['Trends from your Vault','आपके वॉल्ट से रुझान','तुमच्या व्हॉल्टमधील कल'],['Built from every stored report','हर सुरक्षित रिपोर्ट से बना','प्रत्येक साठवलेल्या अहवालावरून'],
+['Don’t miss','छूटे नहीं','चुकवू नका'],['Based on how often you usually test','आप आमतौर पर कितनी बार जाँच करवाते हैं, उसके आधार पर','तुम्ही साधारण किती वेळा तपासणी करता त्यानुसार'],['HbA1c due in January','HbA1c जनवरी में होना है','HbA1c जानेवारीत करायचा आहे'],['Every 6 months','हर 6 महीने','दर 6 महिन्यांनी'],['Lipid profile','लिपिड प्रोफ़ाइल','लिपिड प्रोफाइल'],['Last checked March 2024','आख़िरी जाँच मार्च 2024','शेवटची तपासणी मार्च 2024'],['Remind me','याद दिलाएँ','आठवण करून द्या'],['Reminder set','रिमाइंडर लगा','आठवण लावली'],
+['Add a report','रिपोर्ट जोड़ें','अहवाल जोडा'],['PDF or photo, or straight from your lab','PDF या फ़ोटो, या सीधे आपकी लैब से','PDF किंवा फोटो, किंवा थेट तुमच्या लॅबकडून'],['Choose PDFs or photos','PDF या फ़ोटो चुनें','PDF किंवा फोटो निवडा'],['We read the values and file them for you','हम मान पढ़कर आपके लिए दर्ज करते हैं','आम्ही मूल्ये वाचून तुमच्यासाठी नोंदवतो'],['Scan with phone','फ़ोन से स्कैन करें','फोनने स्कॅन करा'],['From lab','लैब से','लॅबकडून'],
+['Who can see your Vault','आपका वॉल्ट कौन देख सकता है','तुमचा व्हॉल्ट कोण पाहू शकतो'],['Encrypted. You stay in control.','एन्क्रिप्टेड। नियंत्रण आपके हाथ में।','एन्क्रिप्टेड. नियंत्रण तुमच्या हातात.'],['Family','परिवार','कुटुंब'],['summary only','सिर्फ़ सारांश','फक्त सारांश'],['Summary only','सिर्फ़ सारांश','फक्त सारांश'],['Full report','पूरी रिपोर्ट','संपूर्ण अहवाल'],['until you revoke','जब तक आप हटाएँ नहीं','तुम्ही काढेपर्यंत'],
+['Revoke','हटाएँ','काढून टाका'],['Give access','पहुँच दें','प्रवेश द्या'],['Name, e.g. Dr Mehta','नाम, जैसे डॉ. मेहता','नाव, उदा. डॉ. मेहता'],['7 days','7 दिन','7 दिवस'],['30 days','30 दिन','30 दिवस'],['Until I revoke','जब तक मैं न हटाऊँ','मी काढेपर्यंत'],['Only you can see your Vault.','आपका वॉल्ट सिर्फ़ आप देख सकते हैं।','तुमचा व्हॉल्ट फक्त तुम्ही पाहू शकता.'],
+['Prototype with sample reports. Files you add stay in this browser tab only.','नमूना रिपोर्ट वाला प्रोटोटाइप। आपकी जोड़ी फ़ाइलें सिर्फ़ इस ब्राउज़र टैब में रहती हैं।','नमुना अहवालांसह प्रोटोटाइप. तुम्ही जोडलेल्या फाइल्स फक्त या ब्राउझर टॅबमध्ये राहतात.'],['No reports match. Try another filter or search.','कोई रिपोर्ट नहीं मिली। दूसरा फ़िल्टर या खोज आज़माएँ।','कोणताही अहवाल जुळला नाही. दुसरा फिल्टर किंवा शोध वापरा.'],
+['Synced with ABHA 2 min ago','2 मिनट पहले ABHA से सिंक','2 मिनिटांपूर्वी ABHA शी सिंक'],['Synced just now','अभी सिंक हुआ','आत्ताच सिंक झाले'],['Synced with ABHA','ABHA से सिंक हुआ','ABHA शी सिंक झाले'],
+['Document stored','दस्तावेज़ सुरक्षित','दस्तऐवज साठवला'],['Reading values from your file…','आपकी फ़ाइल से मान पढ़े जा रहे हैं…','तुमच्या फाइलमधून मूल्ये वाचत आहे…'],['Open in Summary','सारांश में खोलें','सारांशात उघडा'],['See it in Trends','रुझान में देखें','कलमध्ये पाहा'],['Give a doctor access for 7 days','डॉक्टर को 7 दिन की पहुँच दें','डॉक्टरांना 7 दिवसांचा प्रवेश द्या'],['Doctor link','डॉक्टर लिंक','डॉक्टर लिंक'],
+// doctor
+['Your doctor will ask: “What’s bothering you?” Have the answer ready.','आपके डॉक्टर पूछेंगे: “आपको क्या परेशानी है?” जवाब तैयार रखें।','तुमचे डॉक्टर विचारतील: “तुम्हाला काय त्रास होतो आहे?” उत्तर तयार ठेवा.'],['Why did you get tested?','आपने जाँच क्यों करवाई?','तुम्ही तपासणी का केली?'],
+['Feeling tired','थकान','थकवा'],['Routine check-up','रूटीन चेक-अप','नियमित तपासणी'],['Hair fall','बाल झड़ना','केस गळणे'],['Breathlessness','साँस फूलना','धाप लागणे'],['Add a symptom, e.g. dizziness','लक्षण जोड़ें, जैसे चक्कर','लक्षण जोडा, उदा. चक्कर'],
+['Notes for the doctor','डॉक्टर के लिए नोट्स','डॉक्टरांसाठी नोंदी'],['When did it start? Anything that makes it better or worse?','यह कब शुरू हुआ? किस चीज़ से बेहतर या बदतर होता है?','हे कधी सुरू झाले? कशाने बरे किंवा वाईट वाटते?'],['Questions to ask','पूछने वाले सवाल','विचारायचे प्रश्न'],
+['No questions yet. Add one, or tap “Add” on an explanation.','अभी कोई सवाल नहीं। एक जोड़ें, या किसी व्याख्या पर “जोड़ें” दबाएँ।','अजून प्रश्न नाहीत. एक जोडा, किंवा स्पष्टीकरणावर “जोडा” दाबा.'],['Add your own question','अपना सवाल जोड़ें','तुमचा प्रश्न जोडा'],
+['Save for your doctor','डॉक्टर के लिए सहेजें','डॉक्टरांसाठी जतन करा'],['Values to discuss, reason, notes and questions in one summary','चर्चा वाले मान, कारण, नोट्स और सवाल एक सारांश में','चर्चेची मूल्ये, कारण, नोंदी आणि प्रश्न एका सारांशात'],['Create visit summary','मुलाक़ात का सारांश बनाएँ','भेटीचा सारांश तयार करा'],
+['Find a doctor nearby','पास में डॉक्टर खोजें','जवळचे डॉक्टर शोधा'],['Sample listings for the prototype','प्रोटोटाइप के लिए नमूना सूची','प्रोटोटाइपसाठी नमुना यादी'],['Specialist','विशेषज्ञ','तज्ज्ञ'],['Thyroid and sugar specialist','थायरॉइड और शुगर विशेषज्ञ','थायरॉइड आणि साखर तज्ज्ञ'],['Appointments only','सिर्फ़ अपॉइंटमेंट से','फक्त अपॉइंटमेंटने'],['Open 24 hours','24 घंटे खुला','24 तास सुरू'],['Directions','रास्ता','मार्ग'],
+['Visit summary','मुलाक़ात का सारांश','भेटीचा सारांश'],['Copy summary','सारांश कॉपी करें','सारांश कॉपी करा'],['Paste it into a message to your clinic, or show it on your phone at the visit.','इसे क्लिनिक को भेजे संदेश में चिपकाएँ, या मुलाक़ात पर फ़ोन में दिखाएँ।','हे क्लिनिकला पाठवलेल्या संदेशात पेस्ट करा, किंवा भेटीत फोनवर दाखवा.'],['The summary stays in English so your doctor can read it.','सारांश अंग्रेज़ी में रहता है ताकि डॉक्टर इसे पढ़ सकें।','सारांश इंग्रजीत राहतो म्हणजे डॉक्टर तो वाचू शकतील.'],
+// family
+['Share a calm summary, and switch between family members’ reports','शांत सारांश साझा करें, और परिवार के सदस्यों की रिपोर्ट के बीच बदलें','शांत सारांश शेअर करा, आणि कुटुंबातील सदस्यांचे अहवाल बदला'],['You','आप','तुम्ही'],['Husband','पति','पती'],['Daughter','बेटी','मुलगी'],['Send to','किसे भेजें','कोणाला पाठवायचे'],['Include full values','पूरे मान शामिल करें','संपूर्ण मूल्ये समाविष्ट करा'],
+['Off by default, so raw numbers don’t spread worry in family chats.','डिफ़ॉल्ट रूप से बंद, ताकि फ़ैमिली चैट में कच्चे आँकड़े चिंता न फैलाएँ।','डीफॉल्टनुसार बंद, म्हणजे कुटुंबाच्या चॅटमध्ये कच्चे आकडे काळजी पसरवत नाहीत.'],['Copy message','संदेश कॉपी करें','संदेश कॉपी करा'],['Open WhatsApp','WhatsApp खोलें','WhatsApp उघडा'],['Preview','पूर्वावलोकन','पूर्वावलोकन'],['none selected','कोई नहीं चुना','कोणीही निवडले नाही'],
+// dictionary
+['Plain meanings for the words on your report, checked by doctors','आपकी रिपोर्ट के शब्दों के सरल अर्थ, डॉक्टरों द्वारा जाँचे गए','तुमच्या अहवालातील शब्दांचे सोपे अर्थ, डॉक्टरांनी तपासलेले'],['Look up a term, e.g. MCV','कोई शब्द खोजें, जैसे MCV','शब्द शोधा, उदा. MCV'],['Your value','आपका मान','तुमचे मूल्य'],
+['The values most healthy people fall within, set by your lab. Another lab may use slightly different numbers.','वे मान जिनमें ज़्यादातर स्वस्थ लोग आते हैं, आपकी लैब द्वारा तय। दूसरी लैब थोड़े अलग अंक इस्तेमाल कर सकती है।','बहुतेक निरोगी लोक ज्या मूल्यांमध्ये येतात ती, तुमच्या लॅबने ठरवलेली. दुसरी लॅब थोडे वेगळे आकडे वापरू शकते.'],
+['Words used for tests that look for something, like an infection marker. Non-reactive means it was not found; reactive means it was found and needs a doctor’s reading.','ये शब्द उन जाँचों में आते हैं जो किसी चीज़ को खोजती हैं, जैसे संक्रमण का संकेत। Non-reactive का मतलब नहीं मिला; reactive का मतलब मिला और डॉक्टर को देखना चाहिए।','हे शब्द एखादी गोष्ट शोधणाऱ्या तपासण्यांमध्ये येतात, जसे संसर्गाचा निर्देशक. Non-reactive म्हणजे आढळले नाही; reactive म्हणजे आढळले आणि डॉक्टरांनी पाहायला हवे.'],
+['Post-prandial sugar: blood sugar about two hours after a meal.','खाने के लगभग दो घंटे बाद खून में शुगर।','जेवणानंतर सुमारे दोन तासांनी रक्तातील साखर.'],['Complete blood count: a set of tests about your red cells, white cells and platelets.','कम्प्लीट ब्लड काउंट: लाल कोशिकाओं, सफ़ेद कोशिकाओं और प्लेटलेट्स की जाँचों का समूह।','संपूर्ण रक्त तपासणी: लाल पेशी, पांढऱ्या पेशी आणि प्लेटलेट्सच्या तपासण्यांचा संच.'],
+['Not eating or drinking anything except water for 8 to 10 hours before a test.','जाँच से पहले 8 से 10 घंटे पानी के अलावा कुछ न खाना-पीना।','तपासणीपूर्वी 8 ते 10 तास पाण्याशिवाय काहीही न खाणे-पिणे.'],
+['Trusted explainers','भरोसेमंद वीडियो','विश्वासार्ह व्हिडिओ'],['Short videos reviewed by a physician','डॉक्टर द्वारा जाँचे गए छोटे वीडियो','डॉक्टरांनी तपासलेले छोटे व्हिडिओ'],['Reviewed by a physician','डॉक्टर द्वारा जाँचा गया','डॉक्टरांनी तपासलेले'],
+['What is HbA1c?','HbA1c क्या है?','HbA1c म्हणजे काय?'],['High vs low haemoglobin','ज़्यादा बनाम कम हीमोग्लोबिन','जास्त विरुद्ध कमी हिमोग्लोबिन'],['How to read a range','दायरा कैसे पढ़ें','मर्यादा कशी वाचावी'],
+['HbA1c shows your average sugar over about three months, so it changes slowly. Doctors look at the trend across several reports.','HbA1c लगभग तीन महीनों की औसत शुगर दिखाता है, इसलिए धीरे बदलता है। डॉक्टर कई रिपोर्टों का रुझान देखते हैं।','HbA1c सुमारे तीन महिन्यांची सरासरी साखर दाखवतो, म्हणून हळू बदलतो. डॉक्टर अनेक अहवालांतील कल पाहतात.'],
+['Both low and high haemoglobin are worth discussing. Doctors read it with MCV, MCH and how you feel.','कम और ज़्यादा, दोनों हीमोग्लोबिन पर बात करनी चाहिए। डॉक्टर इसे MCV, MCH और आपकी तबीयत के साथ देखते हैं।','कमी आणि जास्त, दोन्ही हिमोग्लोबिनबद्दल बोलायला हवे. डॉक्टर हे MCV, MCH आणि तुम्हाला कसे वाटते त्यासोबत पाहतात.'],
+['The green band is your lab’s usual range. The dot is you. Slightly outside is common; your doctor tells you what it means for you.','हरी पट्टी आपकी लैब का सामान्य दायरा है। बिंदु आप हैं। थोड़ा बाहर होना आम है; इसका आपके लिए क्या मतलब है, डॉक्टर बताते हैं।','हिरवी पट्टी म्हणजे तुमच्या लॅबची नेहमीची मर्यादा. बिंदू म्हणजे तुम्ही. थोडे बाहेर असणे सामान्य आहे; याचा तुमच्यासाठी अर्थ डॉक्टर सांगतात.'],
+['Video placeholder in this prototype','इस प्रोटोटाइप में वीडियो की जगह','या प्रोटोटाइपमध्ये व्हिडिओची जागा'],['No match. Try a shorter word.','कुछ नहीं मिला। छोटा शब्द आज़माएँ।','काहीही जुळले नाही. लहान शब्द वापरा.'],
+['Language','भाषा','भाषा'],['“Normal” is different for women and men. See where you are on each.','महिलाओं और पुरुषों के लिए “सामान्य” अलग होता है। देखें कि आप हर एक में कहाँ हैं।','महिला आणि पुरुषांसाठी “सामान्य” वेगळे असते. प्रत्येकात तुम्ही कुठे आहात ते पाहा.'],
+['Simple','आसान','सोपे'],['Veteran','अनुभवी','अनुभवी'],['Reading mode','पढ़ने का तरीका','वाचण्याची पद्धत'],
+['Simple: plain words and simple graphs. Tap any underlined term to see what it means.','आसान: सरल शब्द और आसान ग्राफ़। किसी भी रेखांकित शब्द पर टैप करके उसका मतलब देखें।','सोपे: साधे शब्द आणि सोपे आलेख. कोणत्याही अधोरेखित शब्दावर टॅप करून त्याचा अर्थ पाहा.'],
+['Veteran: medical terms, exact ranges and a full results table.','अनुभवी: मेडिकल शब्द, सटीक दायरे और नतीजों की पूरी तालिका।','अनुभवी: वैद्यकीय शब्द, अचूक मर्यादा आणि निकालांची संपूर्ण तक्ता.'],
+['Simple mode: plain words and simple graphs','आसान मोड: सरल शब्द और आसान ग्राफ़','सोपा मोड: साधे शब्द आणि सोपे आलेख'],['Veteran mode: medical terms and full numbers','अनुभवी मोड: मेडिकल शब्द और पूरे अंक','अनुभवी मोड: वैद्यकीय शब्द आणि संपूर्ण आकडे'],
+['Oxygen in your blood','खून में ऑक्सीजन','रक्तातील ऑक्सिजन'],['Red blood cell count','लाल कोशिकाओं की गिनती','लाल पेशींची संख्या'],['Size of red blood cells','लाल कोशिकाओं का आकार','लाल पेशींचा आकार'],['Oxygen in each red cell','हर लाल कोशिका में ऑक्सीजन','प्रत्येक लाल पेशीतील ऑक्सिजन'],['Infection-fighting cells','संक्रमण से लड़ने वाली कोशिकाएँ','संसर्गाशी लढणाऱ्या पेशी'],['Clotting cells','खून जमाने वाली कोशिकाएँ','रक्त गोठवणाऱ्या पेशी'],
+['Sugar before eating','खाने से पहले शुगर','जेवणापूर्वीची साखर'],['3-month sugar average','3 महीने की औसत शुगर','3 महिन्यांची सरासरी साखर'],['3-month sugar','3 महीने की शुगर','3 महिन्यांची साखर'],['“Bad” cholesterol','“बुरा” कोलेस्ट्रॉल','“वाईट” कोलेस्ट्रॉल'],['“Good” cholesterol','“अच्छा” कोलेस्ट्रॉल','“चांगले” कोलेस्ट्रॉल'],['Blood fat','खून में वसा','रक्तातील चरबी'],['Kidney cleaning','किडनी की सफ़ाई','मूत्रपिंडाची स्वच्छता'],['Liver health','लिवर की सेहत','यकृताचे आरोग्य'],
+['Cholesterol and fats','कोलेस्ट्रॉल और वसा','कोलेस्ट्रॉल आणि चरबी'],['Normal','सामान्य','सामान्य'],['A bit low','थोड़ा कम','थोडे कमी'],['A bit high','थोड़ा ज़्यादा','थोडे जास्त'],['see doctor soon','जल्द डॉक्टर को दिखाएँ','लवकर डॉक्टरांना दाखवा'],
+['Now outside usual range','अब सामान्य दायरे से बाहर','आता नेहमीच्या मर्यादेबाहेर'],['Back to normal','फिर से सामान्य','पुन्हा सामान्य'],['Still a bit low','अब भी थोड़ा कम','अजूनही थोडे कमी'],['Still a bit high','अब भी थोड़ा ज़्यादा','अजूनही थोडे जास्त'],['All normal','सब सामान्य','सर्व सामान्य'],
+['↑ Went up','↑ बढ़ा','↑ वाढले'],['↓ Went down','↓ घटा','↓ कमी झाले'],['Compared with your test in May 2026','मई 2026 की जाँच से तुलना','मे 2026 च्या तपासणीशी तुलना'],
+['Low','कम','कमी'],['Usual','सामान्य','नेहमीचे'],['Usual range','सामान्य दायरा','नेहमीची मर्यादा'],['Then','पहले','आधी'],['Now','अब','आता'],
+['Stayed about the same','लगभग वैसा ही रहा','जवळपास तसेच राहिले'],['What it is','यह क्या है','हे काय आहे'],['The numbers behind this','इसके पीछे के अंक','यामागील आकडे'],['Full details','पूरा विवरण','संपूर्ण तपशील'],['More in the dictionary','शब्दकोश में और','शब्दकोशात अधिक'],
+['Everything in this group is normal.','इस समूह में सब सामान्य है।','या गटात सर्व सामान्य आहे.'],
+['Your blood is carrying a little less oxygen than usual. Three related numbers point to the same thing, so your doctor will look at them together.','आपका खून सामान्य से थोड़ी कम ऑक्सीजन ले जा रहा है। तीन जुड़े हुए अंक एक ही बात बताते हैं, इसलिए डॉक्टर इन्हें साथ में देखेंगे।','तुमचे रक्त नेहमीपेक्षा थोडा कमी ऑक्सिजन वाहून नेत आहे. तीन संबंधित आकडे एकच गोष्ट दाखवतात, म्हणून डॉक्टर ते एकत्र पाहतील.'],
+['This is very common in Indian women and is usually easy to look into.','यह भारतीय महिलाओं में बहुत आम है और आमतौर पर इसकी जाँच आसान होती है।','हे भारतीय महिलांमध्ये खूप सामान्य आहे आणि सहसा तपासायला सोपे असते.'],
+['The signal that tells your thyroid how hard to work is a bit high. The thyroid hormone itself is normal. Your doctor may want to check it again.','थायरॉइड को काम बताने वाला संकेत थोड़ा ज़्यादा है। थायरॉइड हार्मोन ख़ुद सामान्य है। डॉक्टर इसे दोबारा जाँचना चाह सकते हैं।','थायरॉइडला काम सांगणारा संकेत थोडा जास्त आहे. थायरॉइड हार्मोन स्वतः सामान्य आहे. डॉक्टर तो पुन्हा तपासू इच्छितील.'],
+['This number can change from day to day, so one reading is often checked again.','यह अंक दिन-ब-दिन बदल सकता है, इसलिए अक्सर दोबारा जाँचा जाता है।','हा आकडा दिवसागणिक बदलू शकतो, म्हणून अनेकदा पुन्हा तपासला जातो.'],
+['Your sugar is a little higher than usual, and has slowly gone up over two years.','आपकी शुगर सामान्य से थोड़ी ज़्यादा है, और दो साल में धीरे-धीरे बढ़ी है।','तुमची साखर नेहमीपेक्षा थोडी जास्त आहे, आणि दोन वर्षांत हळूहळू वाढली आहे.'],
+['The slow change over months matters more than a single test.','एक जाँच से ज़्यादा, महीनों में धीरे-धीरे होने वाला बदलाव मायने रखता है।','एका तपासणीपेक्षा महिन्यांतला हळूहळू बदल जास्त महत्त्वाचा.'],
+['Your “bad” cholesterol is a little high and has slowly gone up. Your “good” cholesterol is normal.','आपका “बुरा” कोलेस्ट्रॉल थोड़ा ज़्यादा है और धीरे-धीरे बढ़ा है। “अच्छा” कोलेस्ट्रॉल सामान्य है।','तुमचे “वाईट” कोलेस्ट्रॉल थोडे जास्त आहे आणि हळूहळू वाढले आहे. “चांगले” कोलेस्ट्रॉल सामान्य आहे.'],
+['Your doctor looks at this together with blood pressure, sugar, age and family history.','डॉक्टर इसे ब्लड प्रेशर, शुगर, उम्र और परिवार के इतिहास के साथ देखते हैं।','डॉक्टर हे रक्तदाब, साखर, वय आणि कौटुंबिक इतिहासासोबत पाहतात.'],
+['Your vitamin D is low.','आपका विटामिन D कम है।','तुमचे व्हिटॅमिन D कमी आहे.'],['This is very common in India, even in young people.','यह भारत में बहुत आम है, युवाओं में भी।','हे भारतात खूप सामान्य आहे, तरुणांमध्येही.'],
+['Your kidney and liver numbers look normal.','आपकी किडनी और लिवर के अंक सामान्य हैं।','तुमचे मूत्रपिंड आणि यकृताचे आकडे सामान्य आहेत.'],['These are usually checked once a year.','इन्हें आमतौर पर साल में एक बार जाँचा जाता है।','हे सहसा वर्षातून एकदा तपासले जातात.'],
+['Test','जाँच','तपासणी'],['Result','नतीजा','निकाल'],['Unit','इकाई','एकक'],['Lab range','लैब दायरा','लॅब मर्यादा'],['Previous','पिछला','मागील'],['Flag','संकेत','संकेत'],['Gentle view','सौम्य दृश्य','सौम्य दृश्य'],
+['Inside your lab’s range','आपकी लैब के दायरे में','तुमच्या लॅबच्या मर्यादेत'],['A little below your lab’s range','आपकी लैब के दायरे से थोड़ा कम','तुमच्या लॅबच्या मर्यादेपेक्षा थोडे कमी'],['A little above your lab’s range','आपकी लैब के दायरे से थोड़ा ज़्यादा','तुमच्या लॅबच्या मर्यादेपेक्षा थोडे जास्त'],['Further below your lab’s range','आपकी लैब के दायरे से काफ़ी कम','तुमच्या लॅबच्या मर्यादेपेक्षा बरेच कमी'],['Further above your lab’s range','आपकी लैब के दायरे से काफ़ी ज़्यादा','तुमच्या लॅबच्या मर्यादेपेक्षा बरेच जास्त'],
+['Worth discussing with your doctor soon.','इस पर जल्द डॉक्टर से बात करें।','याबद्दल लवकर डॉक्टरांशी बोला.'],['Worth mentioning at your next visit.','अगली मुलाक़ात पर इसका ज़िक्र करें।','पुढच्या भेटीत याचा उल्लेख करा.'],['Show numbers','अंक दिखाएँ','आकडे दाखवा'],['What it means','इसका मतलब','याचा अर्थ'],
+['Nothing to discuss urgently','तुरंत चर्चा की कोई बात नहीं','तातडीने बोलण्यासारखे काही नाही'],['Keep this report for your next routine check-up. Your doctor may still want to see it.','अगले रूटीन चेक-अप के लिए यह रिपोर्ट रखें। डॉक्टर फिर भी इसे देखना चाह सकते हैं।','पुढच्या नियमित तपासणीसाठी हा अहवाल ठेवा. डॉक्टरांना तरीही तो पाहायचा असू शकतो.'],
+['Talk to your doctor soon','जल्द डॉक्टर से बात करें','लवकर डॉक्टरांशी बोला'],['One value is further outside your lab’s range. Book a visit within a week. It isn’t an emergency unless you feel unwell.','एक मान आपकी लैब के दायरे से काफ़ी बाहर है। एक हफ़्ते के अंदर मुलाक़ात तय करें। जब तक तबीयत ख़राब न हो, यह आपात स्थिति नहीं है।','एक मूल्य तुमच्या लॅबच्या मर्यादेपासून बरेच बाहेर आहे. आठवड्याभरात भेट ठरवा. तुम्हाला बरे वाटत नसेल तरच ही आपत्कालीन स्थिती आहे.'],
+['Next step: talk to your doctor','अगला कदम: डॉक्टर से बात करें','पुढचे पाऊल: डॉक्टरांशी बोला'],['When to get help right away','तुरंत मदद कब लें','लगेच मदत कधी घ्यावी'],['Prepare my visit','मुलाक़ात की तैयारी करें','माझ्या भेटीची तयारी करा'],
+['How this works: sources and limits','यह कैसे काम करता है: स्रोत और सीमाएँ','हे कसे काम करते: स्रोत आणि मर्यादा'],['Sources and limits','स्रोत और सीमाएँ','स्रोत आणि मर्यादा'],
+['Get help right away if','तुरंत मदद लें अगर','लगेच मदत घ्या जर'],['You have chest pain, severe breathlessness, fainting, confusion or heavy bleeding. Don’t wait for a report: call your doctor or 112.','सीने में दर्द, बहुत तेज़ साँस फूलना, बेहोशी, उलझन या ज़्यादा ख़ून बहना हो। रिपोर्ट का इंतज़ार न करें: डॉक्टर को या 112 पर कॉल करें।','छातीत दुखणे, खूप धाप लागणे, बेशुद्ध पडणे, गोंधळ किंवा जास्त रक्तस्राव होत असल्यास. अहवालाची वाट पाहू नका: डॉक्टरांना किंवा 112 वर कॉल करा.'],
+['Where your numbers come from','आपके अंक कहाँ से आते हैं','तुमचे आकडे कुठून येतात'],['Your values and normal ranges come from your lab report:','आपके मान और सामान्य दायरे आपकी लैब रिपोर्ट से आते हैं:','तुमची मूल्ये आणि सामान्य मर्यादा तुमच्या लॅब अहवालातून येतात:'],['Ranges differ between labs, sexes and ages, so AasanReport always uses your lab’s own range.','दायरे लैब, लिंग और उम्र के हिसाब से अलग होते हैं, इसलिए AasanReport हमेशा आपकी लैब का दायरा इस्तेमाल करता है।','मर्यादा लॅब, लिंग आणि वयानुसार वेगळ्या असतात, म्हणून AasanReport नेहमी तुमच्या लॅबची मर्यादा वापरते.'],
+['Where the explanations come from','व्याख्याएँ कहाँ से आती हैं','स्पष्टीकरणे कुठून येतात'],['Plain-language meanings are based on MedlinePlus (US National Library of Medicine) and checked by doctors.','आसान भाषा के अर्थ MedlinePlus (US National Library of Medicine) पर आधारित हैं और डॉक्टरों द्वारा जाँचे गए हैं।','सोप्या भाषेतील अर्थ MedlinePlus (US National Library of Medicine) वर आधारित आहेत आणि डॉक्टरांनी तपासलेले आहेत.'],
+['Facts about how common something is in India come from the National Family Health Survey (NFHS-5).','भारत में कोई चीज़ कितनी आम है, यह जानकारी राष्ट्रीय परिवार स्वास्थ्य सर्वेक्षण (NFHS-5) से आती है।','भारतात एखादी गोष्ट किती सामान्य आहे ही माहिती राष्ट्रीय कुटुंब आरोग्य सर्वेक्षण (NFHS-5) मधून येते.'],['In this prototype, all explanations are sample text.','इस प्रोटोटाइप में सभी व्याख्याएँ नमूना टेक्स्ट हैं।','या प्रोटोटाइपमधील सर्व स्पष्टीकरणे नमुना मजकूर आहेत.'],
+['What AasanReport can’t do','AasanReport क्या नहीं कर सकता','AasanReport काय करू शकत नाही'],['It can’t diagnose a condition or tell you its cause.','यह किसी बीमारी का निदान नहीं कर सकता और न ही उसका कारण बता सकता है।','हे आजाराचे निदान करू शकत नाही किंवा त्याचे कारण सांगू शकत नाही.'],['It can’t see your symptoms, medicines, pregnancy or history.','यह आपके लक्षण, दवाएँ, गर्भावस्था या इतिहास नहीं देख सकता।','हे तुमची लक्षणे, औषधे, गर्भधारणा किंवा इतिहास पाहू शकत नाही.'],
+['It doesn’t prescribe treatment or replace your doctor’s advice.','यह इलाज नहीं बताता और डॉक्टर की सलाह की जगह नहीं लेता।','हे उपचार सांगत नाही आणि डॉक्टरांच्या सल्ल्याची जागा घेत नाही.'],['It can misread a blurry scan. Check values against your paper report.','धुंधले स्कैन को यह ग़लत पढ़ सकता है। मानों को अपनी काग़ज़ी रिपोर्ट से मिलाएँ।','अस्पष्ट स्कॅन हे चुकीचे वाचू शकते. मूल्ये कागदी अहवालाशी जुळवा.'],['Sources: your lab’s ranges, MedlinePlus','स्रोत: आपकी लैब के दायरे, MedlinePlus','स्रोत: तुमच्या लॅबच्या मर्यादा, MedlinePlus'],['Search a term','कोई शब्द खोजें','शब्द शोधा'],['More','और','अधिक'],
+// detail, ask, toasts
+['What it measures','यह क्या मापता है','हे काय मोजते'],['If it’s low','अगर कम हो','कमी असल्यास'],['If it’s high','अगर ज़्यादा हो','जास्त असल्यास'],['Over time','समय के साथ','कालांतराने'],['Add to visit questions','मुलाक़ात के सवालों में जोड़ें','भेटीच्या प्रश्नांत जोडा'],
+['Your doctor reads this value with your other results and how you feel.','आपके डॉक्टर इस मान को आपके दूसरे नतीजों और आपकी तबीयत के साथ देखते हैं।','तुमचे डॉक्टर हे मूल्य तुमच्या इतर निकालांसोबत आणि तुम्हाला कसे वाटते त्यासोबत पाहतात.'],
+['Ask about your report','अपनी रिपोर्ट के बारे में पूछें','तुमच्या अहवालाबद्दल विचारा'],['Prototype: answers are pre-written examples','प्रोटोटाइप: जवाब पहले से लिखे उदाहरण हैं','प्रोटोटाइप: उत्तरे आधी लिहिलेली उदाहरणे आहेत'],['e.g. Is this because of iron?','जैसे, क्या यह आयरन की वजह से है?','उदा. हे लोहामुळे आहे का?'],['Ask','पूछें','विचारा'],
+['Is this because of iron?','क्या यह आयरन की वजह से है?','हे लोहामुळे आहे का?'],['Should I change my diet?','क्या मुझे खान-पान बदलना चाहिए?','मी आहार बदलावा का?'],['Is this serious?','क्या यह गंभीर है?','हे गंभीर आहे का?'],
+['Your report doesn’t include an iron test such as ferritin. Low haemoglobin together with low MCV and MCH is a pattern doctors often check iron for. You can ask your doctor whether a ferritin test makes sense for you.','आपकी रिपोर्ट में फ़ेरिटिन जैसी आयरन की जाँच नहीं है। कम हीमोग्लोबिन के साथ कम MCV और MCH होने पर डॉक्टर अक्सर आयरन जाँचते हैं। आप डॉक्टर से पूछ सकते हैं कि क्या फ़ेरिटिन जाँच आपके लिए ठीक रहेगी।','तुमच्या अहवालात फेरिटिनसारखी लोहाची तपासणी नाही. कमी हिमोग्लोबिनसोबत कमी MCV आणि MCH असल्यास डॉक्टर अनेकदा लोह तपासतात. फेरिटिन तपासणी तुमच्यासाठी योग्य आहे का, हे तुम्ही डॉक्टरांना विचारू शकता.'],
+['Diet and medicine choices depend on your whole health picture, so they’re for your doctor or a dietitian to advise. I can add this question to your visit list.','खान-पान और दवा का फ़ैसला आपकी पूरी सेहत पर निर्भर करता है, इसलिए यह सलाह डॉक्टर या डाइटीशियन देंगे। मैं यह सवाल आपकी सूची में जोड़ सकता हूँ।','आहार आणि औषधांचे निर्णय तुमच्या संपूर्ण आरोग्यावर अवलंबून असतात, म्हणून हा सल्ला डॉक्टर किंवा आहारतज्ज्ञ देतील. मी हा प्रश्न तुमच्या यादीत जोडू शकतो.'],
+['I can’t judge how serious something is for you. In this report, none of your values is far outside your lab’s range. Your doctor can tell you what it means, especially alongside how you feel.','मैं नहीं बता सकता कि आपके लिए कुछ कितना गंभीर है। इस रिपोर्ट में आपका कोई भी मान लैब के दायरे से बहुत बाहर नहीं है। आपकी तबीयत के साथ इसका मतलब आपके डॉक्टर बता सकते हैं।','तुमच्यासाठी एखादी गोष्ट किती गंभीर आहे हे मी ठरवू शकत नाही. या अहवालात तुमचे कोणतेही मूल्य लॅबच्या मर्यादेपासून फार दूर नाही. तुम्हाला कसे वाटते त्यासोबत याचा अर्थ तुमचे डॉक्टर सांगू शकतात.'],
+['I can explain what each value measures and how it compares with your lab’s range, but I can’t diagnose. Want me to add this question to your visit list?','मैं बता सकता हूँ कि हर मान क्या मापता है और लैब के दायरे से कैसा है, लेकिन निदान नहीं कर सकता। क्या यह सवाल आपकी सूची में जोड़ दूँ?','प्रत्येक मूल्य काय मोजते आणि लॅबच्या मर्यादेशी कसे आहे हे मी सांगू शकतो, पण निदान करू शकत नाही. हा प्रश्न तुमच्या यादीत जोडू का?'],
+['Added to your visit questions','आपके सवालों में जोड़ा गया','तुमच्या प्रश्नांत जोडले'],['Question added','सवाल जोड़ा गया','प्रश्न जोडला'],['Copied','कॉपी हो गया','कॉपी झाले'],['Select the text and copy it yourself','टेक्स्ट चुनकर ख़ुद कॉपी करें','मजकूर निवडून स्वतः कॉपी करा'],['Reading aloud…','पढ़कर सुनाया जा रहा है…','मोठ्याने वाचत आहे…'],
+['Read aloud is off. Turn it on in Display.','पढ़कर सुनाना बंद है। डिस्प्ले में चालू करें।','मोठ्याने वाचणे बंद आहे. डिस्प्लेमध्ये सुरू करा.'],['Read aloud isn’t available in this browser.','इस ब्राउज़र में पढ़कर सुनाना उपलब्ध नहीं है।','या ब्राउझरमध्ये मोठ्याने वाचणे उपलब्ध नाही.'],['Read aloud isn’t available here.','यहाँ पढ़कर सुनाना उपलब्ध नहीं है।','येथे मोठ्याने वाचणे उपलब्ध नाही.'],
+['We’ll remind you','हम याद दिलाएँगे','आम्ही आठवण करून देऊ'],['Reminder removed','रिमाइंडर हटाया','आठवण काढली'],['Already up to date','पहले से अपडेट है','आधीच अद्ययावत'],['Undo','पूर्ववत करें','पूर्ववत करा'],
+['A 7-day doctor link was added to “Who can see your Vault”','“आपका वॉल्ट कौन देख सकता है” में 7 दिन का डॉक्टर लिंक जोड़ा गया','“तुमचा व्हॉल्ट कोण पाहू शकतो” मध्ये 7 दिवसांची डॉक्टर लिंक जोडली']
+]);
+const SEXW={hi:{women:'महिलाओं',men:'पुरुषों'},mr:{women:'महिलां',men:'पुरुषां'}};
+function look(s){const r=TRD.get(s);return r?r[S.lang]:null}
+const PAT=[
+ [/^(↑|↓) ([\d.]+) since last test$/,(m,l)=>l==='hi'?`${m[1]} ${m[2]} पिछली जाँच से`:`${m[1]} ${m[2]} मागील तपासणीपासून`],
+ [/^(\d+) values? crossed a range line$/,(m,l)=>l==='hi'?`${m[1]} मान दायरे की रेखा पार कर गए`:`${m[1]} मूल्यांनी मर्यादा ओलांडली`],
+ [/^Compared with (.+)$/,(m,l)=>l==='hi'?`${look(m[1])||m[1]} से तुलना`:`${look(m[1])||m[1]} शी तुलना`],
+ [/^(\d+) reports?$/,(m,l)=>l==='hi'?`${m[1]} रिपोर्ट`:`${m[1]} अहवाल`],
+ [/^(\d+) values$/,(m,l)=>l==='hi'?`${m[1]} मान`:`${m[1]} मूल्ये`],
+ [/^(\d+) tests$/,(m,l)=>l==='hi'?`${m[1]} जाँचें`:`${m[1]} तपासण्या`],
+ [/^(\d+) tests read and filed$/,(m,l)=>l==='hi'?`${m[1]} जाँचें पढ़कर दर्ज की गईं`:`${m[1]} तपासण्या वाचून नोंदवल्या`],
+ [/^(\d+) to discuss$/,(m,l)=>l==='hi'?`${m[1]} पर चर्चा`:`${m[1]} चर्चेसाठी`],
+ [/^Your lab’s range: (.+)$/,(m,l)=>l==='hi'?`आपकी लैब का दायरा: ${m[1]}`:`तुमच्या लॅबची मर्यादा: ${m[1]}`],
+ [/^Your lab’s range for (women|men): (.+)$/,(m,l)=>l==='hi'?`${SEXW.hi[m[1]]} के लिए आपकी लैब का दायरा: ${m[2]}`:`${SEXW.mr[m[1]]}साठी तुमच्या लॅबची मर्यादा: ${m[2]}`],
+ [/^Range: (.+)$/,(m,l)=>l==='hi'?`दायरा: ${m[1]}`:`मर्यादा: ${m[1]}`],
+ [/^(\d+) of (\d+) outside range$/,(m,l)=>l==='hi'?`${m[2]} में से ${m[1]} दायरे से बाहर`:`${m[2]} पैकी ${m[1]} मर्यादेबाहेर`],
+ [/^All (\d+) in range$/,(m,l)=>l==='hi'?`सभी ${m[1]} दायरे में`:`सर्व ${m[1]} मर्यादेत`],
+ [/^(.+) details$/,(m,l)=>l==='hi'?`${m[1]} विवरण`:`${m[1]} तपशील`],
+ [/^Myth: (.+)$/,(m,l)=>(l==='hi'?'भ्रम: ':'गैरसमज: ')+(look(m[1])||m[1])],
+ [/^(\d+) of (\d+)$/,(m)=>`${m[1]} / ${m[2]}`],
+ [/^(women|men): (.+)$/,(m,l)=>`${l==='hi'?(m[1]==='women'?'महिलाएँ':'पुरुष'):(m[1]==='women'?'महिला':'पुरुष')}: ${m[2]}`],
+ [/^(.+) against the (women|men)’s range$/,(m,l)=>l==='hi'?`${SEXW.hi[m[2]]} के दायरे के हिसाब से ${look(m[1])||m[1]}`:`${SEXW.mr[m[2]]}च्या मर्यादेनुसार ${look(m[1])||m[1]}`],
+ [/^(\d+) questions ready$/,(m,l)=>l==='hi'?`${m[1]} सवाल तैयार`:`${m[1]} प्रश्न तयार`],
+ [/^Reason: (.+)$/,(m,l)=>'कारण: '+m[1].split(', ').map(x=>look(x)||x).join(', ')],
+ [/^from (\d+) blood reports in your Vault$/,(m,l)=>l==='hi'?`वॉल्ट की ${m[1]} ब्लड रिपोर्ट से`:`व्हॉल्टमधील ${m[1]} रक्त अहवालांवरून`],
+ [/^(\d+) reports since (\d+)$/,(m,l)=>l==='hi'?`${m[2]} से ${m[1]} रिपोर्ट`:`${m[2]} पासून ${m[1]} अहवाल`],
+ [/^(All|Blood|Imaging|Urine|Prescriptions) (\d+)$/,(m)=>`${look(m[1])} ${m[2]}`],
+ [/^(Blood|Thyroid|Sugar|Avg sugar) \((\w+)\)$/,(m,l)=>`${m[1]==='Avg sugar'?(l==='hi'?'औसत शुगर':'सरासरी साखर'):look(m[1])} (${m[2]})`],
+ [/^Share (.+)’s summary$/,(m,l)=>l==='hi'?`${m[1]} का सारांश साझा करें`:`${m[1]} यांचा सारांश शेअर करा`],
+ [/^Recipients: (.*)$/,(m,l)=>(l==='hi'?'किसे: ':'कोणाला: ')+(look(m[1])||m[1])],
+ [/^Showing (.+)’s report$/,(m,l)=>l==='hi'?`${m[1]} की रिपोर्ट दिखाई जा रही है`:`${m[1]} यांचा अहवाल दाखवत आहे`],
+ [/^Reading (\d+) files?…$/,(m,l)=>l==='hi'?`${m[1]} फ़ाइल पढ़ी जा रही है…`:`${m[1]} फाइल वाचत आहे…`],
+ [/^(.+) filed in your Vault$/,(m,l)=>l==='hi'?`${m[1]} आपके वॉल्ट में दर्ज`:`${m[1]} तुमच्या व्हॉल्टमध्ये नोंदवले`],
+ [/^Access removed for (.+)$/,(m,l)=>l==='hi'?`${m[1]} की पहुँच हटाई गई`:`${m[1]} यांचा प्रवेश काढला`],
+ [/^(.+) can now see your report$/,(m,l)=>l==='hi'?`${m[1]} अब आपकी रिपोर्ट देख सकते हैं`:`${m[1]} आता तुमचा अहवाल पाहू शकतात`],
+ [/^(\d+) new report from (.+)$/,(m,l)=>l==='hi'?`${m[2]} से ${m[1]} नई रिपोर्ट`:`${m[2]} कडून ${m[1]} नवीन अहवाल`],
+ [/^expires in (\d+) days$/,(m,l)=>l==='hi'?`${m[1]} दिन में ख़त्म`:`${m[1]} दिवसांत संपेल`],
+ [/^(\d+) min$/,(m,l)=>l==='hi'?`${m[1]} मिनट`:`${m[1]} मिनिटे`],
+ [/^Open until (\d+) pm$/,(m,l)=>l==='hi'?`रात ${m[1]} बजे तक खुला`:`रात्री ${m[1]} पर्यंत सुरू`],
+ [/^Search the dictionary for “(.*)”$/,(m,l)=>l==='hi'?`शब्दकोश में “${m[1]}” खोजें`:`शब्दकोशात “${m[1]}” शोधा`],
+ [/^You asked: (.+)$/,(m,l)=>(l==='hi'?'आपने पूछा: ':'तुम्ही विचारले: ')+(look(m[1])||m[1])],
+ [/^Low: (.+)$/,(m,l)=>(l==='hi'?'कम होने पर: ':'कमी असल्यास: ')+(look(m[1])||m[1])],
+ [/^High: (.+)$/,(m,l)=>(l==='hi'?'ज़्यादा होने पर: ':'जास्त असल्यास: ')+(look(m[1])||m[1])],
+ [/^(.+?) \(([^()]+)\)$/,(m)=>{const x=look(m[1]);return x?`${x} (${m[2]})`:null}],
+ [/^([A-Za-z ]+?) ([\d.]+) (\S+)$/,(m)=>{const x=look(m[1]);return x?`${x} ${m[2]} ${m[3]}`:null}]
+];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONL={hi:['जन','फ़र','मार्च','अप्रै','मई','जून','जुल','अग','सित','अक्टू','नव','दिस'],mr:['जाने','फेब्रु','मार्च','एप्रि','मे','जून','जुलै','ऑग','सप्टें','ऑक्टो','नोव्हें','डिसें']};
+PAT.unshift([/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/,(m,l)=>`${m[1]} ${MONL[l][MON.indexOf(m[2])]} ${m[3]}`],
+ [/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ’(\d\d)$/,(m,l)=>`${MONL[l][MON.indexOf(m[1])]} ’${m[2]}`],
+ [/^Clinic visit, (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/,(m,l)=>`${l==='hi'?'क्लिनिक विज़िट':'क्लिनिक भेट'}, ${m[1]} ${MONL[l][MON.indexOf(m[2])]}`]);
+PAT.push([/^Bring these (\d+) things to your next visit\. There’s no rush, but don’t skip it\.$/,(m,l)=>l==='hi'?`अगली मुलाक़ात पर ये ${m[1]} बातें ले जाएँ। जल्दी नहीं है, पर इसे टालें नहीं।`:`पुढच्या भेटीत या ${m[1]} गोष्टी घेऊन जा. घाई नाही, पण टाळू नका.`]);
+PAT.push(
+ [/^Went (up|down) (a little|a lot)(.*)$/,(m,l)=>{const w=l==='hi'?{up:'बढ़ा',down:'घटा','a little':'थोड़ा','a lot':'काफ़ी'}:{up:'वाढले',down:'कमी झाले','a little':'थोडे','a lot':'बरेच'};const sfx={' since last test':l==='hi'?'पिछली जाँच से ':'मागील तपासणीपासून ',' over 2 years':l==='hi'?'2 साल में ':'2 वर्षांत ','':''}[m[3]]??'';return `${sfx}${w[m[2]]} ${w[m[1]]}`}],
+ [/^Stayed about the same(.+)$/,(m,l)=>{const sfx={' since last test':l==='hi'?'पिछली जाँच से ':'मागील तपासणीपासून ',' over 2 years':l==='hi'?'2 साल में ':'2 वर्षांत '}[m[1]]??'';return sfx+(l==='hi'?'लगभग वैसा ही रहा':'जवळपास तसेच राहिले')}],
+ [/^(\d+) of (\d+) need a look$/,(m,l)=>l==='hi'?`${m[2]} में से ${m[1]} पर ध्यान दें`:`${m[2]} पैकी ${m[1]} कडे लक्ष द्या`],
+ [/^All (\d+) normal$/,(m,l)=>l==='hi'?`सभी ${m[1]} सामान्य`:`सर्व ${m[1]} सामान्य`],
+ [/^From your (.+) report, (.+)$/,(m,l)=>l==='hi'?`आपकी ${m[1]} रिपोर्ट से, ${tr(m[2])}`:`तुमच्या ${m[1]} अहवालातून, ${tr(m[2])}`],
+ [/^On your report: (.+)$/,(m,l)=>(l==='hi'?'रिपोर्ट पर: ':'अहवालावर: ')+tr(m[1])]);
+function pat(t){for(const [re,fn] of PAT){const m=t.match(re);if(m){const r=fn(m,S.lang);if(r!=null)return r}}return null}
+function tr(s){if(S.lang==='en'||s==null)return s;const m=String(s).match(/^(\s*)([\s\S]*?)(\s*)$/);const t=m[2];if(!t)return s;
+ let r=look(t);if(r==null&&t.includes(' · '))r=t.split(' · ').map(p=>look(p)??pat(p)??p).join(' · ');if(r==null)r=pat(t);
+ return r==null?s:m[1]+r+m[3]}
+function translateDOM(root){if(S.lang==='en'||!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||p.closest('textarea,pre,script,style,title,.notr'))return NodeFilter.FILTER_REJECT;return n.nodeValue.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}});
+ const list=[];while(w.nextNode())list.push(w.currentNode);for(const n of list){const v=tr(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
+ root.querySelectorAll('[placeholder]').forEach(e=>{e.placeholder=tr(e.placeholder)})}
+
+/* ---------- render & routing ---------- */
+const VIEWS={summary:vSummary,vault:vVault,trends:vTrends,doctor:vDoctor,family:vFamily,dictionary:vDictionary,profile:vProfile};
+function applyDisplay(){const r=document.documentElement;if(S.dark)r.dataset.theme='dark';else if(r.dataset.theme==='dark'&&S._setDark)r.dataset.theme='light';if(S.contrast)r.dataset.contrast='high';else delete r.dataset.contrast;if(S.large)r.dataset.size='large';else delete r.dataset.size;r.lang=S.lang==='en'?'en':S.lang}
+function render(keepScroll=true){const m=document.getElementById('main');const st=m.scrollTop;applyDisplay();renderSide();renderTabs();m.innerHTML=VIEWS[S.view]();translateDOM(m);translateDOM(document.getElementById('side'));translateDOM(document.getElementById('tabbar'));if(keepScroll)m.scrollTop=st;bindInputs()}
+function go(v){if(!VIEWS[v])v='summary';S.view=v;if(location.hash!=='#'+v){try{history.replaceState(null,'','#'+v)}catch(e){location.hash=v}}render(false);document.getElementById('main').scrollTop=0}
+window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(VIEWS[v]&&v!==S.view){S.view=v;render(false)}});
+function bindInputs(){const q=document.getElementById('q');if(q){q.oninput=()=>{S.search=q.value;const s=q.value.trim().toLowerCase();const box=document.getElementById('qres');if(!s){box.innerHTML='';return}
+  const hits=Object.entries(TESTS).filter(([k,t])=>(t.name+' '+t.term+' '+t.plain).toLowerCase().includes(s)).slice(0,6);box.innerHTML=`<div class="results">${hits.map(([k,t])=>`<button data-act="detail" data-v="${k}">${esc(t.name)} <span class="muted small">${esc(t.term)} · ${fmt(valOf(k))} ${esc(t.unit)}</span></button>`).join('')}<button data-act="dictsearch">Search the dictionary for “${esc(q.value)}”</button></div>`;translateDOM(box)};
+  q.onkeydown=e=>{if(e.key==='Enter'){S.dictQuery=q.value;S.search='';go('dictionary')}if(e.key==='Escape'){document.getElementById('qres').innerHTML=''}}}
+ const vq=document.getElementById('vq');if(vq)vq.oninput=()=>{S.vaultQuery=vq.value;const pos=vq.selectionStart;render();const n=document.getElementById('vq');n.focus();n.setSelectionRange(pos,pos)};
+ const dq=document.getElementById('dq');if(dq)dq.oninput=()=>{S.dictQuery=dq.value;const pos=dq.selectionStart;render();const n=document.getElementById('dq');n.focus();n.setSelectionRange(pos,pos)};
+ const notes=document.getElementById('notes');if(notes)notes.oninput=()=>{S.notes=notes.value};
+ bindChart(document.getElementById('main'));
+}
+function bindChart(root){root.querySelectorAll('.chart-wrap').forEach(cw=>{const tip=cw.querySelector('.tipbox');const show=c=>{tip.hidden=false;tip.style.left=c.dataset.x+'%';tip.style.top=c.dataset.y+'%';tip.innerHTML=`<b>${c.dataset.v}</b>${esc(tr(c.dataset.d))} · ${esc(tr(c.dataset.s))}`};cw.querySelectorAll('.pt').forEach(c=>{c.onmouseenter=()=>show(c);c.onfocus=()=>show(c);c.onclick=()=>show(c);c.onmouseleave=c.onblur=()=>{tip.hidden=true}})})}
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
+ if(f.id==='qform'){const v=document.getElementById('qnew').value.trim();if(v){S.questions.push({t:v,done:false});render();toast('Question added')}}
+ if(f.id==='reasonform'){const v=document.getElementById('rnew').value.trim();if(v){S.reasons[v]=true;render()}}
+ if(f.id==='askform'){const v=document.getElementById('askq').value.trim();if(v)answer(v)}
+ if(f.id==='accessform'){const w=document.getElementById('aw').value.trim();if(!w)return;S.access.push({who:w,what:`${document.getElementById('at').value} · ${document.getElementById('ad').value==='Until I revoke'?'until you revoke':'expires in '+document.getElementById('ad').value}`});render();toast(`${w} can now see your ${document.getElementById('at')?'report':'summary'}`)}});
+let lastRemoved=null;
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.act==='qdone'){S.questions[+t.dataset.v].done=t.checked;render()}});
+document.getElementById('file').addEventListener('change',e=>{const files=[...e.target.files];files.forEach((f,i)=>{const id='u'+Date.now()+i;const img=/^image\//.test(f.type);const r={id,title:f.name.replace(/\.[^.]+$/,'')||'New report',lab:img?'Scanned photo':'Uploaded PDF',date:'Just now',year:2026,type:'Blood',tests:0,status:'Reading values…',k:'neutral',processing:true};S.reports.unshift(r);setTimeout(()=>{r.processing=false;r.tests=Math.floor(Math.random()*10)+3;r.status='Filed';r.k='ok';render();toast(`${r.title} filed in your Vault`)},1800)});if(files.length){S.view='vault';render(false);toast(`Reading ${files.length} ${files.length===1?'file':'files'}…`)}e.target.value=''});
+document.addEventListener('click',e=>{if(!e.target.closest('#pop'))closePop();const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,v=el.dataset.v;
+ if(a==='closebg'){if(e.target===el)closeLayer();return}
+ if(a!=='qdone'&&el.tagName!=='LABEL')e.preventDefault&&(el.tagName==='A'?0:0);
+ switch(a){
+  case 'go':closeLayer();go(v);break;
+  case 'group':go('summary');setTimeout(()=>{const d=document.getElementById('grp-'+v);if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})}},30);break;
+  case 'profile':S.profile=v;S.rangeSex=null;if(TESTS[S.trendKey]&&!offGroups().includes(TESTS[S.trendKey].group)){const g=offGroups()[0];if(g){const k=SYSTEMS.find(s=>TESTS[s[0]].group===g);if(k)S.trendKey=k[0]}}render();toast(`Showing ${P().short}’s report`);break;
+  case 'toggle':S[v]=!S[v];if(v==='dark')S._setDark=true;store.set(v,S[v]);if(v==='readAloud'&&!S[v]&&window.speechSynthesis){speechSynthesis.cancel();S.speaking=false}render();break;
+  case 'lang':S.lang=v;store.set('lang',v);render();break;
+  case 'listen':speak(spokenSummary());break;
+  case 'speak':speak(v);break;
+  case 'trend':S.trendKey=v;render();break;
+  case 'trendpick':S.trendKey=v;render();document.getElementById('main').scrollTo({top:0,behavior:'smooth'});break;
+  case 'trendgo':S.trendKey=v;go('trends');break;
+  case 'span':S.span=+v;render();break;
+  case 'detail':closePop();document.getElementById('qres')&&(document.getElementById('qres').innerHTML='');detail(v);break;
+  case 'explain':explain(v);break;
+  case 'ask':ask(v);break;
+  case 'askchip':document.getElementById('askq').value=tr(v);answer(v);break;
+  case 'addq':if(!S.questions.some(q=>q.t===v)){S.questions.push({t:v,done:false});toast('Added to your visit questions')}el.disabled=true;el.textContent='Added';if(!document.querySelector('.scrim'))render();break;
+  case 'qdel':S.questions.splice(+v,1);render();break;
+  case 'myth':S.mythIdx=(S.mythIdx+1)%MYTHS.length;render();break;
+  case 'rsex':S.rangeSex=v;render();break;
+  case 'scroll':{const t=document.getElementById(v);t&&t.scrollIntoView({behavior:'smooth',block:'start'});break}
+  case 'reason':S.reasons[v]=!S.reasons[v];render();break;
+  case 'clinics':clinics();break;
+  case 'cfilter':S.clinicFilter=v;render();break;
+  case 'visitsummary':visitSummary();break;
+  case 'copy':copyText(document.getElementById(v).textContent);break;
+  case 'copyshare':copyText(shareText(false));break;
+  case 'recip':S.recipients[v]=!S.recipients[v];render();break;
+  case 'incvals':S.includeValues=!S.includeValues;render();break;
+  case 'dict':closePop();closeLayer();S.dictQuery=v;go('dictionary');break;
+  case 'dictsearch':S.dictQuery=S.search;S.search='';go('dictionary');break;
+  case 'video':video(+v);break;
+  case 'vfilter':S.vaultFilter=v;render();break;
+  case 'vmode':S.vaultMode=v;render();break;
+  case 'report':reportSheet(v);break;
+  case 'upload':document.getElementById('file').click();break;
+  case 'sync':{const b=document.getElementById('syncbtn');if(b){b.disabled=true;b.innerHTML=ic('sync','class="spin"')+'Syncing…'}setTimeout(()=>{if(!S.synced){S.reports.unshift({id:'r0',title:'Vitamin B12 re-check',lab:'Dr Lal PathLabs',date:'15 Nov 2026',year:2026,type:'Blood',tests:1,status:'All in range',k:'ok'});S.synced=true;toast('Synced with ABHA · 1 new report from Dr Lal PathLabs')}else toast('Already up to date');S.view==='vault'?render():go('vault')},1200);break}
+  case 'remind':S.reminders[v]=!S.reminders[v];render();toast(S.reminders[v]?'We’ll remind you':'Reminder removed');break;
+  case 'revoke':lastRemoved={i:+v,item:S.access[+v]};S.access.splice(+v,1);render();toast(`Access removed for ${lastRemoved.item.who}`,true);break;
+  case 'undo':if(lastRemoved){S.access.splice(lastRemoved.i,0,lastRemoved.item);lastRemoved=null;render();document.getElementById('toastbox').innerHTML=''}break;
+  case 'sharereport':S.access.push({who:'Doctor link',what:'Full report · expires in 7 days'});closeLayer();toast('A 7-day doctor link was added to “Who can see your Vault”');if(S.view==='vault')render();break;
+  case 'close':closeLayer();break;
+  case 'sources':sourcesModal(v);break;
+  case 'mode':S.mode=v;store.set('mode',v);closePop();render();toast(v==='simple'?'Simple mode: plain words and simple graphs':'Veteran mode: medical terms and full numbers');break;
+  case 'term':termPop(el,v);break;
+  case 'reveal':S.revealed[v]=true;render();break;
+ }});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('pop')){closePop();return}if(document.querySelector('.scrim'))closeLayer()}
+ if((e.key==='Enter'||e.key===' ')&&e.target.matches('span[data-act="term"]')){e.preventDefault();termPop(e.target,e.target.dataset.v)}});
+document.addEventListener('scroll',closePop,true);
+(function init(){const v=location.hash.slice(1);if(VIEWS[v])S.view=v;render(false)})();
+</script>
+</body>
+</html>
